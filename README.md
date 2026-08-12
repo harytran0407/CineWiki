@@ -12,7 +12,7 @@
 
 ## Live Demo & Preview
 
-> **Live Demo Link:** `https://cine-wiki-v1.vercel.app/`
+**Live Demo Link:** https://cine-wiki-v1.vercel.app/
 
 
 ## Key Features
