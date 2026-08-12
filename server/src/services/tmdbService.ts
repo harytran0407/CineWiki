@@ -56,13 +56,30 @@ const COUNTRY_TO_LANG_MAP: Record<string, { country?: string; lang?: string }> =
   TH: { country: 'TH', lang: 'th' }
 };
 
-export function getUnifiedImdbScore(movieId: number, tmdbVoteAvg?: number, voteCount?: number, releaseDate?: string, title?: string): number {
+/**
+ * Unified IMDb-style score.
+ *
+ * minVoteCount / minVoteCountRecent are configurable because vote volume on TMDB
+ * varies enormously by market: a global/US title with 300+ votes is common, but
+ * a Vietnamese (or other regional) title with even 20-50 votes can already be a
+ * well-known, well-reviewed release. Callers filtering by country should pass in
+ * lower thresholds for non-global markets so valid regional movies aren't zeroed out.
+ */
+export function getUnifiedImdbScore(
+  movieId: number,
+  tmdbVoteAvg?: number,
+  voteCount?: number,
+  releaseDate?: string,
+  title?: string,
+  minVoteCount: number = 300,
+  minVoteCountRecent: number = 1000
+): number {
   const todayStr = new Date().toISOString().split('T')[0];
   if (releaseDate && releaseDate > todayStr) return 0;
-  if (voteCount != null && voteCount < 300) return 0;
+  if (voteCount != null && voteCount < minVoteCount) return 0;
 
   const year = releaseDate ? parseInt(releaseDate.split('-')[0], 10) : 0;
-  if (year >= 2025 && (voteCount == null || voteCount < 1000)) return 0;
+  if (year >= 2025 && (voteCount == null || voteCount < minVoteCountRecent)) return 0;
   if (!tmdbVoteAvg || tmdbVoteAvg <= 0) return 0;
 
   // Harmonize known TMDB score offsets (e.g. The Godfather raw TMDB is 8.7, real IMDb is 9.2)
@@ -95,6 +112,24 @@ export function calculateWeightedRating(
   if (!voteCount || voteCount <= 0) return 0;
   const wr = (voteCount / (voteCount + m)) * voteAverage + (m / (voteCount + m)) * C;
   return Math.round(wr * 100) / 100;
+}
+
+/**
+ * Determines whether a movie belongs to the "global" market (English-language,
+ * US-origin titles that typically accumulate large vote counts on TMDB) versus a
+ * regional market (e.g. Vietnamese, Korean, Thai titles that rarely reach hundreds
+ * of votes even when well-known and well-reviewed). Used to pick sensible
+ * vote-count thresholds for getUnifiedImdbScore on a per-movie basis, so a movie's
+ * own rating doesn't disappear just because no explicit country filter was passed
+ * in (e.g. viewing a Vietnamese movie's detail page directly).
+ */
+function resolveVoteThresholds(m: any): { minVoteCount: number; minVoteCountRecent: number } {
+  const lang = (m.original_language || 'en').toLowerCase();
+  const originCountries: string[] = m.origin_country || m.production_countries?.map((c: any) => c.iso_3166_1) || [];
+  const isGlobal = lang === 'en' || (Array.isArray(originCountries) && originCountries.includes('US'));
+  return isGlobal
+    ? { minVoteCount: 300, minVoteCountRecent: 1000 }
+    : { minVoteCount: 5, minVoteCountRecent: 20 };
 }
 
 export function isValidMovie(m: any): boolean {
@@ -305,6 +340,14 @@ export class TMDBService {
     const page = Math.max(1, opts.page || 1);
     const language = opts.language || 'vi-VN';
 
+    // Vote volume on TMDB varies hugely by market. Global/US titles routinely clear
+    // 300+ (or 1000+ for very recent releases) votes, but regional markets like Vietnam
+    // rarely do — even well-known, well-reviewed titles. Use lower thresholds for
+    // non-global markets so valid regional movies aren't scored as 0 and filtered out.
+    const isGlobalMarket = country === 'all' || country === 'US';
+    const minVoteCount = isGlobalMarket ? 300 : 5;
+    const minVoteCountRecent = isGlobalMarket ? 1000 : 20;
+
     let candidateMovies: Movie[] = [];
     let tmdbTotalPages = 1;
     let tmdbTotalResults = 0;
@@ -315,7 +358,7 @@ export class TMDBService {
           params: { query: q, language, page }
         });
         if (tmdbRes.data?.results) {
-          candidateMovies = tmdbRes.data.results.map((m: any) => this.mapTMDBMovie(m));
+          candidateMovies = tmdbRes.data.results.map((m: any) => this.mapTMDBMovie(m, minVoteCount, minVoteCountRecent));
           tmdbTotalPages = Math.min(tmdbRes.data.total_pages || 1, 500);
           tmdbTotalResults = tmdbRes.data.total_results || candidateMovies.length;
         }
@@ -328,7 +371,7 @@ export class TMDBService {
           sort_by: sort === 'rating' ? 'vote_average.desc' : sort === 'date' ? 'primary_release_date.desc' : 'popularity.desc'
         };
 
-        if (country === 'all' || country === 'US') {
+        if (isGlobalMarket) {
           if (sort === 'rating' || minRating > 0) {
             params['vote_count.gte'] = 500;
           }
@@ -372,12 +415,12 @@ export class TMDBService {
           const map = new Map<number, any>();
 
           if (page === 1) {
-            combined.forEach((m: any) => map.set(m.id, this.mapTMDBMovie(m)));
+            combined.forEach((m: any) => map.set(m.id, this.mapTMDBMovie(m, minVoteCount, minVoteCountRecent)));
             (legendMovies.filter(Boolean) as Movie[]).forEach((lm) => map.set(lm.id, lm));
           } else {
             combined.forEach((m: any) => {
               if (!legendIds.includes(m.id)) {
-                map.set(m.id, this.mapTMDBMovie(m));
+                map.set(m.id, this.mapTMDBMovie(m, minVoteCount, minVoteCountRecent));
               }
             });
           }
@@ -385,10 +428,29 @@ export class TMDBService {
           candidateMovies = Array.from(map.values());
           tmdbTotalPages = Math.min(res1?.data?.total_pages || 1, 500);
           tmdbTotalResults = res1?.data?.total_results || candidateMovies.length;
+        } else if (sort === 'rating' && !isGlobalMarket && !q) {
+          // Regional "highest rating" filter (e.g. country = VN): fetch a couple of
+          // pages so the in-memory re-sort has a wider pool to pick a real top-N from,
+          // instead of just re-sorting whatever single TMDB page happened to come back.
+          const tmdbP1 = (page - 1) * 2 + 1;
+          const tmdbP2 = tmdbP1 + 1;
+          const [res1, res2] = await Promise.all([
+            this.getAxiosClient().get('/discover/movie', { params: { ...params, page: tmdbP1 } }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: { ...params, page: tmdbP2 } }).catch(() => null)
+          ]);
+          const results1 = res1?.data?.results || [];
+          const results2 = res2?.data?.results || [];
+          const combined = [...results1, ...results2];
+          const map = new Map<number, any>();
+          combined.forEach((m: any) => map.set(m.id, this.mapTMDBMovie(m, minVoteCount, minVoteCountRecent)));
+
+          candidateMovies = Array.from(map.values());
+          tmdbTotalPages = Math.min(res1?.data?.total_pages || 1, 500);
+          tmdbTotalResults = res1?.data?.total_results || candidateMovies.length;
         } else {
           const discoverRes = await this.getAxiosClient().get('/discover/movie', { params });
           if (discoverRes.data?.results) {
-            candidateMovies = discoverRes.data.results.map((m: any) => this.mapTMDBMovie(m));
+            candidateMovies = discoverRes.data.results.map((m: any) => this.mapTMDBMovie(m, minVoteCount, minVoteCountRecent));
             tmdbTotalPages = Math.min(discoverRes.data.total_pages || 1, 500);
             tmdbTotalResults = discoverRes.data.total_results || candidateMovies.length;
           }
@@ -445,7 +507,7 @@ export class TMDBService {
         const todayStr = new Date().toISOString().split('T')[0];
         if (m.release_date && m.release_date > todayStr) return false;
         if (m.vote_average <= 0 || !m.imdb_score || m.imdb_score <= 0) return false;
-        if (country === 'all' && m.vote_count < 300) return false;
+        if (isGlobalMarket && m.vote_count < 300) return false;
       }
 
       if (minRating > 0) {
@@ -456,7 +518,7 @@ export class TMDBService {
     });
 
     if (sort === 'rating') {
-      const mThreshold = (country === 'all' || country === 'US') ? 2500 : 250;
+      const mThreshold = isGlobalMarket ? 2500 : 250;
       allMovies.sort((a, b) => {
         const scoreA = a.imdb_score || a.vote_average || 0;
         const scoreB = b.imdb_score || b.vote_average || 0;
@@ -621,10 +683,13 @@ export class TMDBService {
     };
   }
 
-  private static mapTMDBMovie(m: any): Movie {
+  private static mapTMDBMovie(m: any, overrideMinVoteCount?: number, overrideMinVoteCountRecent?: number): Movie {
+    const auto = resolveVoteThresholds(m);
+    const minVoteCount = overrideMinVoteCount ?? auto.minVoteCount;
+    const minVoteCountRecent = overrideMinVoteCountRecent ?? auto.minVoteCountRecent;
     const todayStr = new Date().toISOString().split('T')[0];
     const isUpcoming = (m.release_date && m.release_date > todayStr) || m.status === 'In Production' || m.status === 'Post Production' || m.status === 'Planned';
-    const score = isUpcoming ? 0 : getUnifiedImdbScore(m.id, m.vote_average, m.vote_count, m.release_date, m.title || m.original_title);
+    const score = isUpcoming ? 0 : getUnifiedImdbScore(m.id, m.vote_average, m.vote_count, m.release_date, m.title || m.original_title, minVoteCount, minVoteCountRecent);
 
     return {
       id: m.id,
@@ -649,13 +714,16 @@ export class TMDBService {
     };
   }
 
-  private static mapTMDBMovieDetail(m: any): Movie {
+  private static mapTMDBMovieDetail(m: any, overrideMinVoteCount?: number, overrideMinVoteCountRecent?: number): Movie {
+    const auto = resolveVoteThresholds(m);
+    const minVoteCount = overrideMinVoteCount ?? auto.minVoteCount;
+    const minVoteCountRecent = overrideMinVoteCountRecent ?? auto.minVoteCountRecent;
     const director = m.credits?.crew?.find((c: any) => c.job === 'Director')?.name || 'Director';
     const writer = m.credits?.crew?.find((c: any) => c.job === 'Screenplay' || c.job === 'Writer')?.name || director;
     const studio = m.production_companies?.[0]?.name || 'Film Studio';
     const todayStr = new Date().toISOString().split('T')[0];
     const isUpcoming = (m.release_date && m.release_date > todayStr) || m.status === 'In Production' || m.status === 'Post Production' || m.status === 'Planned';
-    const score = isUpcoming ? 0 : getUnifiedImdbScore(m.id, m.vote_average, m.vote_count, m.release_date, m.title || m.original_title);
+    const score = isUpcoming ? 0 : getUnifiedImdbScore(m.id, m.vote_average, m.vote_count, m.release_date, m.title || m.original_title, minVoteCount, minVoteCountRecent);
 
     return {
       id: m.id,

@@ -150,7 +150,7 @@ export const SearchPage: React.FC = () => {
     setSearchParams((prev) => {
       const u = new URLSearchParams(prev);
       const valStr = String(val);
-      if (!valStr || valStr === 'all' || (key === 'minRating' && valStr === '0') || (key === 'page' && valStr === '1') || (key === 'yearFrom' && valStr === '1950') || (key === 'yearTo' && valStr === '2026') || (key === 'sort' && valStr === 'rating')) {
+      if (!valStr || valStr === 'all' || (key === 'minRating' && valStr === '0') || (key === 'page' && valStr === '1') || (key === 'yearFrom' && valStr === '1950') || (key === 'yearTo' && valStr === '2026') || (key === 'sort' && valStr === 'ratingdate')) {
         u.delete(key);
       } else {
         u.set(key, valStr);
@@ -486,9 +486,10 @@ export const SearchPage: React.FC = () => {
             }}
             className="w-full py-2 px-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-amber-400"
           >
+            <option value="popularity">Độ phổ biến</option>
             <option value="rating">Điểm IMDb cao nhất</option>
             <option value="date">Năm phát hành mới nhất</option>
-            <option value="popularity">Độ phổ biến</option>
+
           </select>
         </div>
       </div>
@@ -565,11 +566,10 @@ export const SearchPage: React.FC = () => {
                       <button
                         key={pNum}
                         onClick={() => { setPage(pNum); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                        className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${
-                          pNum === page
-                            ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md ring-2 ring-amber-400/40'
-                            : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-400/40'
-                        }`}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${pNum === page
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md ring-2 ring-amber-400/40'
+                          : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-400/40'
+                          }`}
                       >
                         {pNum}
                       </button>
@@ -597,11 +597,10 @@ export const SearchPage: React.FC = () => {
                       <button
                         key={item}
                         onClick={() => { setPage(item); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                        className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${
-                          item === page
-                            ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md ring-2 ring-amber-400/40'
-                            : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-400/40'
-                        }`}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${item === page
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md ring-2 ring-amber-400/40'
+                          : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-amber-400/40'
+                          }`}
                       >
                         {item}
                       </button>
