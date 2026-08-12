@@ -1,6 +1,11 @@
 import axios from 'axios';
 import { Actor, Movie } from '../types';
 
+export interface AIChatResult {
+  reply: string;
+  followUpQuestions: string[];
+}
+
 export interface AIInsight {
   biography_vi: string;
   summary_vi: string;
@@ -229,12 +234,15 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
     };
   }
 
-  static async chatWithAI(message: string, history: { role: string; content: string }[] = []): Promise<string> {
+  static async chatWithAI(message: string, history: { role: string; content: string }[] = []): Promise<AIChatResult> {
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    const systemPrompt = `Bạn là CineBot AI - Trợ lý điện ảnh thông minh, sành sỏi của CineWiki. Hãy trả lời ngắn gọn (2-3 câu), thân thiện, súc tích bằng tiếng Việt về phim, diễn viên, đạo diễn và giải thưởng Oscar.`;
+    const systemPrompt = `Bạn là CineBot AI - Trợ lý điện ảnh thông minh, sành sỏi của CineWiki. Hãy trả lời ngắn gọn (2-3 câu), thân thiện, súc tích bằng tiếng Việt về phim, diễn viên, đạo diễn và giải thưởng Oscar.
+Sau phần trả lời chính, hãy ĐỀ XUẤT ĐÚNG 3 CÂU HỎI GỢI Ý TIẾP THEO (Follow-up Questions) ngắn gọn liên quan trực tiếp đến nội dung câu trả lời. Không chèn biểu tượng emoji hay icon vào câu hỏi.
+Định dạng dòng cuối cùng chính xác như sau:
+FOLLOW_UP: [Câu hỏi gợi ý 1] | [Câu hỏi gợi ý 2] | [Câu hỏi gợi ý 3]`;
 
     const contents = [
       { parts: [{ text: systemPrompt }] },
@@ -244,6 +252,8 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
       { parts: [{ text: `Khán giả: ${message}` }] }
     ];
 
+    let rawOutput = '';
+
     if (geminiKey) {
       for (const m of GEMINI_FAST_MODELS) {
         try {
@@ -252,14 +262,17 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
             { contents }
           );
           const output = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (output) return output.trim();
+          if (output) {
+            rawOutput = output.trim();
+            break;
+          }
         } catch (err) {
           console.warn(`[Gemini Chat ${m} Warning] ${(err as Error).message}`);
         }
       }
     }
 
-    if (openaiKey) {
+    if (!rawOutput && openaiKey) {
       try {
         const response = await axios.post(
           'https://api.openai.com/v1/chat/completions',
@@ -269,13 +282,173 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
           },
           { headers: { Authorization: `Bearer ${openaiKey}` } }
         );
-        const output = response.data?.choices?.[0]?.message?.content;
-        if (output) return output.trim();
+        rawOutput = response.data?.choices?.[0]?.message?.content || '';
       } catch (err) {
         console.warn(`[OpenAI Chat Warning] ${(err as Error).message}`);
       }
     }
 
-    return `CineBot AI: Xin chào! Tôi có thể giải đáp thông tin điện ảnh, diễn viên nổi tiếng, doanh thu bom tấn hay các tác phẩm đoạt giải Oscar. Bạn muốn tìm hiểu tác phẩm hay tài tử nào?`;
+    if (!rawOutput) {
+      rawOutput = `CineBot AI: Xin chào! Tôi có thể giải đáp thông tin điện ảnh, diễn viên nổi tiếng, doanh thu bom tấn hay các tác phẩm đoạt giải Oscar. Bạn muốn tìm hiểu tác phẩm hay tài tử nào?`;
+    }
+
+    // Parse text & extract follow-up questions
+    let reply = rawOutput.trim();
+    let followUpQuestions: string[] = [];
+
+    const followUpMatch = reply.match(/FOLLOW_UP:\s*(.+)$/im);
+    if (followUpMatch) {
+      const rawQuestions = followUpMatch[1];
+      followUpQuestions = rawQuestions
+        .split('|')
+        .map(q => q.trim().replace(/^[-*•\d.]+\s*/, '').replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim())
+        .filter(q => q.length > 0);
+      reply = reply.replace(/FOLLOW_UP:\s*.+$/im, '').trim();
+    }
+
+    if (followUpQuestions.length === 0) {
+      const msgLower = (message + ' ' + reply).toLowerCase();
+      if (msgLower.includes('oscar') || msgLower.includes('giải')) {
+        followUpQuestions = [
+          'Bộ phim này đoạt những giải Oscar nào?',
+          'Diễn viên nào từng giành Oscar xuất sắc nhất?',
+          'Top các phim đạt nhiều Oscar nhất lịch sử?'
+        ];
+      } else if (msgLower.includes('diễn viên') || msgLower.includes('thủ vai') || msgLower.includes('actor') || msgLower.includes('tài tử')) {
+        followUpQuestions = [
+          'Các bộ phim xuất sắc nhất trong sự nghiệp của diễn viên này?',
+          'Tổng doanh thu phòng vé các phim của họ?',
+          'Diễn viên này thường hợp tác với đạo diễn nào?'
+        ];
+      } else if (msgLower.includes('nolan') || msgLower.includes('oppenheimer') || msgLower.includes('interstellar') || msgLower.includes('inception')) {
+        followUpQuestions = [
+          'Christopher Nolan đã đoạt những giải Oscar nào?',
+          'Phong cách làm phim độc đáo của Nolan là gì?',
+          'Tác phẩm đạt doanh thu cao nhất của Nolan?'
+        ];
+      } else {
+        followUpQuestions = [
+          'Gợi ý thêm các bộ phim hấp dẫn cùng thể loại?',
+          'Phim này đạt những giải thưởng điện ảnh lớn nào?',
+          'Dàn diễn viên chính gồm những gương mặt nổi tiếng nào?'
+        ];
+      }
+    }
+
+    return { reply, followUpQuestions: followUpQuestions.slice(0, 4) };
+  }
+
+  static async getMovieAwards(movieTitle: string, releaseYear?: string): Promise<{ name: string; category: string; year: number }[]> {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+    const yearHint = releaseYear ? ` (ra mắt năm ${releaseYear.split('-')[0]})` : '';
+    const prompt = `Bạn là chuyên gia lịch sử điện ảnh. Liệt kê CÁC GIẢI THƯỞNG ĐIỆN ẢNH MÀ BỘ PHIM "${movieTitle}"${yearHint} ĐÃ THỰC SỰ GIÀNH CHIẾN THẮNG (WON/WINNER ONLY — BAO GỒM CẢ GIẢI THƯỞNG LỚN VÀ GIẢI PHÊ BÌNH NHỎ LẺ, MIỄN LÀ THỰC SỰ GIÀNH CHIẾN THẮNG. KHÔNG GIỚI HẠN SỐ LƯỢNG, TUYỆT ĐỐI KHÔNG LẤY CÁC GIẢI CHỈ ĐƯỢC ĐỀ CỬ NOMINATED).
+Trả về ĐÚNG JSON array (không có markdown, không có text thêm vào):
+[
+  {"name": "Tên giải thưởng đầy đủ", "category": "Hạng mục cụ thể", "year": 2024},
+  ...
+]
+Nếu không có thông tin chắc chắn, trả về mảng rỗng: []`;
+
+    let textOutput = '';
+
+    if (geminiKey) {
+      for (const modelName of GEMINI_FAST_MODELS) {
+        try {
+          const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`,
+            { contents: [{ parts: [{ text: prompt }] }] },
+            { timeout: 8000 }
+          );
+          textOutput = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (textOutput) break;
+        } catch (err) {
+          console.warn(`[Gemini Awards ${modelName}] ${(err as Error).message}`);
+        }
+      }
+    }
+
+    if (!textOutput && openaiKey) {
+      try {
+        const response = await axios.post(
+          'https://api.openai.com/v1/chat/completions',
+          { model: 'gpt-4o-mini', messages: [{ role: 'user', content: prompt }] },
+          { headers: { Authorization: `Bearer ${openaiKey}` }, timeout: 8000 }
+        );
+        textOutput = response.data?.choices?.[0]?.message?.content || '';
+      } catch (err) {
+        console.warn(`[OpenAI Awards] ${(err as Error).message}`);
+      }
+    }
+
+    if (!textOutput && anthropicKey) {
+      try {
+        const response = await axios.post(
+          'https://api.anthropic.com/v1/messages',
+          { model: 'claude-3-haiku-20240307', max_tokens: 800, messages: [{ role: 'user', content: prompt }] },
+          { headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 8000 }
+        );
+        textOutput = response.data?.content?.[0]?.text || '';
+      } catch (err) {
+        console.warn(`[Anthropic Awards] ${(err as Error).message}`);
+      }
+    }
+
+    if (textOutput) {
+      // Extract JSON array from response
+      const jsonMatch = textOutput.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed)) {
+            return parsed
+              .filter((a: any) => a.name && a.category && a.year)
+              .map((a: any) => ({ name: String(a.name), category: String(a.category), year: Number(a.year) }));
+          }
+        } catch (e) {
+          console.warn('[Awards JSON parse error]', e);
+        }
+      }
+    }
+
+    return [];
+  }
+
+  private static imdbRatingCache = new Map<string, number>();
+
+  static async getVerifiedImdbScoreWithAI(movieId: number, title: string, releaseDate?: string, tmdbAvg?: number): Promise<number> {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (releaseDate && releaseDate > todayStr) return 0;
+
+    const cacheKey = `${movieId}_${title}`;
+    if (this.imdbRatingCache.has(cacheKey)) {
+      return this.imdbRatingCache.get(cacheKey)!;
+    }
+
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey && title) {
+      try {
+        const prompt = `What is the exact official IMDb rating for the movie "${title}" (${releaseDate ? releaseDate.split('-')[0] : ''})? Return ONLY a single number like 9.2, 9.3, 9.0, 8.8, 8.6, or 0 if unreleased/upcoming. Do not add any words or markdown, only output the number:`;
+        const response = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${geminiKey}`,
+          { contents: [{ parts: [{ text: prompt }] }] },
+          { timeout: 5000 }
+        );
+        const textOutput = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        const score = parseFloat(textOutput);
+        if (!isNaN(score) && score >= 0 && score <= 10) {
+          this.imdbRatingCache.set(cacheKey, score);
+          return score;
+        }
+      } catch (err) {
+        console.warn(`[AI Rating Verify Warning for ${title}]`, (err as Error).message);
+      }
+    }
+
+    const fallback = tmdbAvg ? Math.round(tmdbAvg * 10) / 10 : 0;
+    this.imdbRatingCache.set(cacheKey, fallback);
+    return fallback;
   }
 }

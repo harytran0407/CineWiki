@@ -1,16 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { HomePage } from './pages/HomePage';
 import { MovieDetailPage } from './pages/MovieDetailPage';
 import { ActorDetailPage } from './pages/ActorDetailPage';
+import { ActorListPage } from './pages/ActorListPage';
 import { ComparePage } from './pages/ComparePage';
 import { SearchPage } from './pages/SearchPage';
 import { FollowingPage } from './pages/FollowingPage';
 import { AIChatbot } from './components/AIChatbot';
 import { Notification, User } from './types';
-import './i18n';
+
+const ScrollToTop: React.FC = () => {
+  const { pathname, search } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname, search]);
+
+  return null;
+};
+
 
 const safeFetchJson = async (url: string, options?: RequestInit) => {
   try {
@@ -23,13 +34,15 @@ const safeFetchJson = async (url: string, options?: RequestInit) => {
   }
 };
 
+import { NetworkPage } from './pages/NetworkPage';
+
 export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('cinewiki_user');
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [userFollowIds, setUserFollowIds] = useState<number[]>([2038, 3223]);
+  const [userFollowIds, setUserFollowIds] = useState<number[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // Sync Notifications safely
@@ -77,7 +90,7 @@ export const App: React.FC = () => {
     const data = await safeFetchJson('/api/user/notifications/read', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notificationId })
+      body: JSON.stringify({ notificationId, userId: user?.id || 'demo-user' })
     });
     if (notificationId === 'all') {
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
@@ -88,6 +101,7 @@ export const App: React.FC = () => {
 
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen flex flex-col bg-[#0a0d14] text-slate-100 selection:bg-amber-500 selection:text-black font-sans">
         <Header
           notifications={notifications}
@@ -109,6 +123,8 @@ export const App: React.FC = () => {
             />
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/actors" element={<ActorListPage />} />
+            <Route path="/network/:actorId?" element={<NetworkPage />} />
             <Route
               path="/following"
               element={

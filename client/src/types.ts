@@ -37,6 +37,8 @@ export interface Actor {
   total_box_office?: string;
   highest_grossing_movie?: string;
   landmark_works?: string[];
+  popularity?: number;
+  known_for?: { id: number; title?: string; name?: string }[];
   awards?: Award[];
   filmography: FilmographyItem[];
   upcoming_movies?: {
@@ -54,6 +56,8 @@ export interface Movie {
   title: string;
   original_title: string;
   title_vi?: string;
+  origin_country?: string[] | string;
+  original_language?: string;
   poster_path: string;
   backdrop_path: string;
   release_date: string;
@@ -65,6 +69,7 @@ export interface Movie {
   vote_average: number;
   vote_count: number;
   imdb_score?: number;
+  weighted_rating?: number;
   rotten_tomatoes?: {
     tomatometer: number;
     audience_score: number;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ImgWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -27,6 +27,11 @@ export const ImgWithFallback: React.FC<ImgWithFallbackProps> = ({
 
   const [imgSrc, setImgSrc] = useState<string>(src || getDefaultFallback());
   const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(src || getDefaultFallback());
+    setHasError(false);
+  }, [src]);
 
   const handleError = () => {
     if (!hasError) {

@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { ActorNetworkGraph } from '../components/ActorNetworkGraph';
 import { ActorNetwork } from '../types';
 import { Network } from 'lucide-react';
 
 export const NetworkPage: React.FC = () => {
   const { actorId } = useParams<{ actorId?: string }>();
-  const { t } = useTranslation();
 
   const [graphData, setGraphData] = useState<ActorNetwork | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,8 +65,8 @@ export const NetworkPage: React.FC = () => {
           <Network className="w-3.5 h-3.5" />
           <span>Vượt trội hơn IMDb</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-slate-100">{t('network.title')}</h1>
-        <p className="text-xs sm:text-sm text-slate-400">{t('network.subtitle')}</p>
+        <h1 className="text-3xl sm:text-4xl font-black text-slate-100">Mạng Lưới Diễn Viên</h1>
+        <p className="text-xs sm:text-sm text-slate-400">Khám phá mạng lưới kết nối giữa các diễn viên qua các bộ phim chung.</p>
       </div>
 
       <ActorNetworkGraph graphData={graphData} currentActorId={actorId ? parseInt(actorId, 10) : undefined} />

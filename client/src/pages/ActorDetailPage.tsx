@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Actor } from '../types';
 import { CareerTimeline } from '../components/CareerTimeline';
 import { ImgWithFallback } from '../components/ImgWithFallback';
 import { calculateDaysToBirthday } from '../utils/dateUtils';
 import { Heart, Calendar, MapPin, Award as AwardIcon, Sparkles, ArrowLeft, Cake, Film, DollarSign, Ruler, UserCheck, Flame, GitCompare, Search, X } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
+
 interface ActorDetailPageProps {
   userFollowIds: number[];
   onToggleFollow: (actorId: number) => void;
 }
 
+const aiInsightCache = new Map<number, any>();
+
 export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds, onToggleFollow }) => {
   const { id } = useParams<{ id: string }>();
-  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   const [actor, setActor] = useState<Actor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +75,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
           setPopularCandidates(data.data.filter((a: Actor) => a.id !== numActorId));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [numActorId]);
 
   useEffect(() => {
@@ -99,43 +102,61 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
   }, [compareSearchQuery, numActorId]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    let cancelled = false;
+
     const fetchActor = async () => {
       if (!id) return;
       setLoading(true);
       setError(null);
       setTranslatedBio(null);
+      setAiInsight(null);
+
       try {
-        const lang = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
-        const res = await fetch(`/api/actors/${id}?lang=${lang}`);
+        const langParam = i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN';
+        const res = await fetch(`/api/actors/${id}?lang=${langParam}`);
         if (!res.ok) throw new Error('Không thể tải chi tiết diễn viên');
         const data = await res.json();
+
+        if (cancelled) return;
+
         if (data.success) {
           setActor(data.data);
-          // Auto-trigger Gemini AI Insight generation on page load
-          fetch('/api/ai/enrich-actor', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ actorId: data.data.id, actorData: data.data })
-          })
-            .then((r) => r.json())
-            .then((aiRes) => {
-              if (aiRes.success && aiRes.data) {
-                setAiInsight(aiRes.data);
-              }
+          const actId = data.data.id;
+          if (aiInsightCache.has(actId)) {
+            setAiInsight(aiInsightCache.get(actId));
+          } else {
+            fetch('/api/ai/enrich-actor', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ actorId: actId, actorData: data.data })
             })
-            .catch((err) => console.error('Auto AI insight error', err));
+              .then((r) => r.json())
+              .then((aiRes) => {
+                if (!cancelled && aiRes.success && aiRes.data) {
+                  aiInsightCache.set(actId, aiRes.data);
+                  setAiInsight(aiRes.data);
+                }
+              })
+              .catch((err) => console.error('Auto AI insight error', err));
+          }
         } else {
           throw new Error(data.message || 'Dữ liệu diễn viên không khả dụng');
         }
       } catch (err) {
-        console.error('Fetch actor error', err);
-        setError((err as Error).message || 'Có lỗi xảy ra, vui lòng thử lại.');
+        if (!cancelled) {
+          console.error('Fetch actor error', err);
+          setError((err as Error).message || 'Có lỗi xảy ra, vui lòng thử lại.');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchActor();
+    return () => {
+      cancelled = true;
+    };
   }, [id, i18n.language]);
 
   const handleAITranslateBio = async () => {
@@ -147,7 +168,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: actor.biography,
-          targetLang: i18n.language === 'vi' ? 'vi' : 'en'
+          targetLang: 'vi'
         })
       });
       const data = await res.json();
@@ -184,12 +205,23 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
   const isFollowing = userFollowIds.includes(numActorId);
   const daysToBday = calculateDaysToBirthday(actor.birthday);
 
-  // Check if real awards exist (including Gemini AI generated specific awards) & sort by year descending
+  // Check if real awards exist (WON awards ONLY, exclude nominations) & sort by year descending
+  const isWonAward = (awd: any) => {
+    if (!awd) return false;
+    if (awd.status === 'nominated' || awd.won === false || awd.isWinner === false) return false;
+    const cat = (awd.category || '').toLowerCase();
+    const name = (awd.name || '').toLowerCase();
+    if (cat.includes('đề cử') || cat.includes('nomine') || cat.includes('nomination') || cat.includes('candidate')) return false;
+    if (name.includes('đề cử') || name.includes('nomine') || name.includes('nomination') || name.includes('candidate')) return false;
+    return true;
+  };
+
   const rawAwards = [
     ...(aiInsight?.awards || []),
     ...(actor.awards || [])
   ];
   const realAwards = rawAwards
+    .filter(isWonAward)
     .filter(
       (a, idx, self) =>
         self.findIndex((item) => item.name.toLowerCase() === a.name.toLowerCase() && item.year === a.year) === idx
@@ -234,14 +266,13 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
 
               <button
                 onClick={() => onToggleFollow(actor.id)}
-                className={`py-2.5 px-6 rounded-2xl text-xs font-bold flex items-center space-x-2 shadow-lg transition transform active:scale-95 ${
-                  isFollowing
-                    ? 'bg-slate-800 text-pink-400 border border-pink-500/30'
-                    : 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:from-amber-400'
-                }`}
+                className={`py-2.5 px-6 rounded-2xl text-xs font-bold flex items-center space-x-2 shadow-lg transition transform active:scale-95 ${isFollowing
+                  ? 'bg-slate-800 text-pink-400 border border-pink-500/30'
+                  : 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:from-amber-400'
+                  }`}
               >
                 <Heart className={`w-4 h-4 ${isFollowing ? 'fill-pink-400 text-pink-400' : ''}`} />
-                <span>{isFollowing ? t('actor.unfollowBtn') : t('actor.followBtn')}</span>
+                <span>{isFollowing ? 'Bỏ theo dõi' : 'Theo dõi'}</span>
               </button>
             </div>
           </div>
@@ -302,7 +333,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
       {/* Detailed Biography with Natural Language Switcher */}
       <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold text-slate-100">{t('actor.biography')}</h2>
+          <h2 className="text-xl font-extrabold text-slate-100">Tiểu sử và cuộc đời</h2>
 
           <button
             onClick={handleAITranslateBio}
@@ -310,7 +341,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
             className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-semibold text-amber-300 transition"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{isTranslating ? t('movie.aiTranslating') : t('movie.aiTranslate')}</span>
+            <span>{isTranslating ? 'Đang dịch...' : '✨ AI dịch tiếng Việt'}</span>
           </button>
         </div>
 
@@ -328,8 +359,8 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
             </div>
             <div>
               <h2 className="text-xl font-black text-slate-100 flex items-center space-x-2">
-                <span>Trí Tuệ Nhân Tạo (AI) Phân Tích Chuyên Sâu</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 font-bold border border-amber-400/30">CineWiki AI Pro</span>
+                <span>Phân Tích Chuyên Sâu</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 font-bold border border-amber-400/30">CineWiki AI</span>
               </h2>
               <p className="text-xs text-slate-400">Tự động tổng hợp di sản nghệ thuật, tâm lý vai diễn & câu chuyện bên lề</p>
             </div>
@@ -364,7 +395,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
             {/* Acting Style */}
             <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
               <h4 className="font-bold text-cyan-400 text-xs flex items-center space-x-1.5">
-                <span>🎭 Phân tích Phong cách Diễn xuất & Tâm lý Nhập vai</span>
+                <span> Phân tích Phong cách Diễn xuất & Tâm lý Nhập vai</span>
               </h4>
               <p className="leading-relaxed text-slate-300">{aiInsight.acting_style_analysis}</p>
             </div>
@@ -374,7 +405,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
               {/* Milestones */}
               <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
                 <h4 className="font-bold text-emerald-400 text-xs flex items-center space-x-1.5">
-                  <span>🏆 Cột mốc Lịch sử Sự nghiệp</span>
+                  <span> Cột mốc Lịch sử Sự nghiệp</span>
                 </h4>
                 <ul className="space-y-2">
                   {aiInsight.milestones.map((m, idx) => (
@@ -431,9 +462,8 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                 <div
                   key={idx}
                   onClick={() => matchedFilm && navigate(`/movie/${matchedFilm.id}`)}
-                  className={`p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center space-x-3.5 shadow-md group transition ${
-                    matchedFilm ? 'hover:border-amber-400/60 cursor-pointer' : ''
-                  }`}
+                  className={`p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center space-x-3.5 shadow-md group transition ${matchedFilm ? 'hover:border-amber-400/60 cursor-pointer' : ''
+                    }`}
                 >
                   <div className="w-12 h-16 rounded-xl overflow-hidden border border-slate-700 flex-shrink-0 bg-slate-800">
                     <ImgWithFallback
@@ -475,7 +505,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
         <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
           <div className="flex items-center space-x-2">
             <AwardIcon className="w-5 h-5 text-amber-400" />
-            <h2 className="text-xl font-extrabold text-slate-100">{t('actor.awards')}</h2>
+            <h2 className="text-xl font-extrabold text-slate-100">Giải thưởng</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -599,11 +629,10 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                     <button
                       key={`popB-${pop.id}`}
                       onClick={() => setSelectedB(pop)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
-                        selectedB?.id === pop.id
-                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400'
-                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-amber-500/40'
-                      }`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${selectedB?.id === pop.id
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400'
+                        : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-amber-500/40'
+                        }`}
                     >
                       {pop.name}
                     </button>
@@ -620,11 +649,10 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                   navigate(`/compare?a=${actor.id}&b=${selectedB.id}`);
                 }
               }}
-              className={`w-full py-3.5 rounded-2xl text-xs font-bold transition flex items-center justify-center space-x-2 ${
-                selectedB
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-xl cursor-pointer transform active:scale-98'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-              }`}
+              className={`w-full py-3.5 rounded-2xl text-xs font-bold transition flex items-center justify-center space-x-2 ${selectedB
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-xl cursor-pointer transform active:scale-98'
+                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                }`}
             >
               <GitCompare className="w-4 h-4" />
               <span>Bắt đầu so sánh hai diễn viên ngay</span>

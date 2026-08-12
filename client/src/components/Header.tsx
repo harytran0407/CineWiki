@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NotificationDrawer } from './NotificationDrawer';
 import { AuthModal } from './AuthModal';
 import { Movie, Actor, Notification, User } from '../types';
-import { Film, Search, GitCompare, Filter, Heart, Bell, Globe, User as UserIcon, LogOut, Network } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { getMovieTitle } from '../utils/langUtils';
+import { Film, Search, ChevronDown, Shuffle, Heart, Bell, User as UserIcon, LogOut, Globe } from 'lucide-react';
 
 interface HeaderProps {
   notifications: Notification[];
@@ -13,15 +14,44 @@ interface HeaderProps {
   setUser: (user: User | null) => void;
 }
 
+const getGenresList = (isEn: boolean) => [
+  { label: isEn ? 'Action' : 'Hành động', value: 'Action' },
+  { label: isEn ? 'Drama' : 'Chính kịch', value: 'Drama' },
+  { label: isEn ? 'Romance' : 'Tình cảm', value: 'Romance' },
+  { label: isEn ? 'Comedy' : 'Hài hước', value: 'Comedy' },
+  { label: isEn ? 'Sci-Fi' : 'Viễn tưởng', value: 'Sci-Fi' },
+  { label: isEn ? 'Horror' : 'Kinh dị', value: 'Horror' },
+  { label: isEn ? 'Crime' : 'Tội phạm', value: 'Crime' },
+  { label: isEn ? 'War' : 'Chiến tranh', value: 'War' },
+  { label: isEn ? 'History' : 'Lịch sử', value: 'History' },
+  { label: isEn ? 'Adventure' : 'Phiêu lưu', value: 'Adventure' },
+  { label: isEn ? 'Animation' : 'Hoạt hình', value: 'Animation' },
+  { label: isEn ? 'Fantasy' : 'Kỳ ảo', value: 'Fantasy' },
+  { label: isEn ? 'Thriller' : 'Giật gân', value: 'Thriller' }
+];
+
+const getCountriesList = (isEn: boolean) => [
+  { label: isEn ? 'USA' : 'Mỹ', code: 'US' },
+  { label: isEn ? 'South Korea' : 'Hàn Quốc', code: 'KR' },
+  { label: isEn ? 'Japan' : 'Nhật Bản', code: 'JP' },
+  { label: isEn ? 'China' : 'Trung Quốc', code: 'CN' },
+  { label: isEn ? 'Vietnam' : 'Việt Nam', code: 'VN' },
+  { label: isEn ? 'UK' : 'Anh', code: 'GB' },
+  { label: isEn ? 'France' : 'Pháp', code: 'FR' },
+  { label: isEn ? 'Thailand' : 'Thái Lan', code: 'TH' }
+];
+
+const YEARS_LIST = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2015];
+
 export const Header: React.FC<HeaderProps> = ({
   notifications,
   onMarkNotificationRead,
   user,
   setUser
 }) => {
-  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, i18n } = useTranslation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ movies: Movie[]; actors: Actor[] }>({
@@ -33,15 +63,15 @@ export const Header: React.FC<HeaderProps> = ({
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
+  // Dropdowns State
+  const [showGenreMenu, setShowGenreMenu] = useState(false);
+  const [showCountryMenu, setShowCountryMenu] = useState(false);
+
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
+  const genreMenuRef = useRef<HTMLDivElement | null>(null);
+  const countryMenuRef = useRef<HTMLDivElement | null>(null);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  const toggleLanguage = () => {
-    const nextLang = i18n.language === 'vi' ? 'en' : 'vi';
-    i18n.changeLanguage(nextLang);
-    localStorage.setItem('cinewiki_lang', nextLang);
-  };
 
   // Autocomplete Search Handler with AbortController
   useEffect(() => {
@@ -55,8 +85,8 @@ export const Header: React.FC<HeaderProps> = ({
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const lang = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
-        const res = await fetch(`/api/movies/search?q=${encodeURIComponent(searchQuery)}&lang=${lang}`, {
+        const langParam = i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN';
+        const res = await fetch(`/api/movies/search?q=${encodeURIComponent(searchQuery)}&lang=${langParam}`, {
           signal: controller.signal
         });
         const data = await res.json();
@@ -77,13 +107,19 @@ export const Header: React.FC<HeaderProps> = ({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [searchQuery, i18n.language]);
+  }, [searchQuery]);
 
-  // Close search dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
+      }
+      if (genreMenuRef.current && !genreMenuRef.current.contains(e.target as Node)) {
+        setShowGenreMenu(false);
+      }
+      if (countryMenuRef.current && !countryMenuRef.current.contains(e.target as Node)) {
+        setShowCountryMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -102,13 +138,40 @@ export const Header: React.FC<HeaderProps> = ({
     navigate(`/actor/${id}`);
   };
 
+  const handleRandomMovie = async () => {
+    try {
+      const res = await fetch('/api/movies/trending');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        // Filter ONLY movies that are currently or already released (release_date <= today and vote_average > 0)
+        const releasedMovies = data.data.filter((m: Movie) => {
+          const isReleasedDate = !m.release_date || m.release_date <= todayStr;
+          const hasRating = m.vote_average != null && m.vote_average > 0;
+          return isReleasedDate && hasRating;
+        });
+
+        const pool = releasedMovies.length > 0 ? releasedMovies : data.data;
+        const randomIndex = Math.floor(Math.random() * pool.length);
+        const randomMovie = pool[randomIndex];
+        navigate(`/movie/${randomMovie.id}`);
+      } else {
+        const defaultReleasedIds = [872585, 157336, 671, 27205, 19995]; // Oppenheimer, Interstellar, Harry Potter, Inception, Avatar
+        const randomId = defaultReleasedIds[Math.floor(Math.random() * defaultReleasedIds.length)];
+        navigate(`/movie/${randomId}`);
+      }
+    } catch {
+      navigate('/movie/872585');
+    }
+  };
+
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-[#0a0d14]/80 border-b border-slate-800/80 transition-all duration-300">
+    <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-[#0a0d14]/90 border-b border-slate-800/80 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
         {/* Logo Brand */}
-        <div onClick={() => navigate('/')} className="flex items-center space-x-3 cursor-pointer group">
+        <div onClick={() => navigate('/')} className="flex items-center space-x-3 cursor-pointer group flex-shrink-0">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition">
             <Film className="w-5 h-5 text-slate-950 stroke-[2.5]" />
           </div>
@@ -118,7 +181,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Search Bar with Autocomplete */}
-        <div ref={searchContainerRef} className="relative flex-1 max-w-md hidden md:block">
+        <div ref={searchContainerRef} className="relative flex-1 max-w-sm hidden md:block">
           <div className="relative">
             <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
             <input
@@ -126,9 +189,15 @@ export const Header: React.FC<HeaderProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery.trim() && setShowDropdown(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  setShowDropdown(false);
+                  navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                }
+              }}
               placeholder={t('nav.searchPlaceholder')}
               aria-label={t('nav.searchPlaceholder')}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-900/90 border border-slate-800 focus:border-amber-500/50 rounded-2xl text-xs text-slate-100 placeholder-slate-400 focus:outline-none transition shadow-inner"
+              className="w-full pl-10 pr-4 py-2 bg-slate-900/90 border border-slate-800 focus:border-amber-500/50 rounded-2xl text-xs text-slate-100 placeholder-slate-400 focus:outline-none transition shadow-inner"
             />
           </div>
 
@@ -139,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({
               {searchResults.movies.length > 0 && (
                 <div className="p-2">
                   <span className="text-[10px] font-bold text-amber-400 px-3 py-1 block uppercase tracking-wider">
-                    {t('nav.movies')}
+                    Phim
                   </span>
                   {searchResults.movies.slice(0, 4).map((m) => (
                     <div
@@ -151,7 +220,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <img src={m.poster_path} alt={m.title} className="w-8 h-12 object-cover rounded-md" />
                       <div>
-                        <h4 className="text-xs font-bold text-slate-100">{m.title}</h4>
+                        <h4 className="text-xs font-bold text-slate-100">{getMovieTitle(m, i18n.language)}</h4>
                         <span className="text-[10px] text-slate-400">{m.release_date ? m.release_date.split('-')[0] : ''}</span>
                       </div>
                     </div>
@@ -163,7 +232,7 @@ export const Header: React.FC<HeaderProps> = ({
               {searchResults.actors.length > 0 && (
                 <div className="p-2">
                   <span className="text-[10px] font-bold text-cyan-400 px-3 py-1 block uppercase tracking-wider">
-                    {t('nav.actors')}
+                    Diễn viên
                   </span>
                   {searchResults.actors.slice(0, 4).map((a) => (
                     <div
@@ -187,73 +256,135 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Navigation Actions */}
-        <nav className="flex items-center space-x-1 sm:space-x-3">
+        <nav className="flex items-center space-x-1 sm:space-x-1.5">
+          {/* ① Thể loại Dropdown */}
+          <div ref={genreMenuRef} className="relative">
+            <button
+              onClick={() => {
+                setShowGenreMenu(!showGenreMenu);
+                setShowCountryMenu(false);
+              }}
+              className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-amber-400 hover:bg-slate-900/80 flex items-center space-x-1 transition cursor-pointer"
+            >
+              <span>{t('nav.genres')}</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition transform ${showGenreMenu ? 'rotate-180 text-amber-400' : ''}`} />
+            </button>
+            {showGenreMenu && (
+              <div className="absolute top-full left-0 mt-2 w-56 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl z-50 p-2 grid grid-cols-2 gap-1 animate-fade-in">
+                {getGenresList(i18n.language?.startsWith('en')).map((g) => (
+                  <button
+                    key={g.value}
+                    onClick={() => {
+                      setShowGenreMenu(false);
+                      navigate(`/search?genre=${g.value}`);
+                    }}
+                    className="text-[11px] text-left px-2.5 py-1.5 rounded-xl text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition font-medium"
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ② Quốc gia Dropdown (Quốc gia & Năm phát hành) */}
+          <div ref={countryMenuRef} className="relative">
+            <button
+              onClick={() => {
+                setShowCountryMenu(!showCountryMenu);
+                setShowGenreMenu(false);
+              }}
+              className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-amber-400 hover:bg-slate-900/80 flex items-center space-x-1 transition cursor-pointer"
+            >
+              <span>{t('nav.countries')}</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition transform ${showCountryMenu ? 'rotate-180 text-amber-400' : ''}`} />
+            </button>
+            {showCountryMenu && (
+              <div className="absolute top-full left-0 mt-2 w-64 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl z-50 p-3 space-y-3 animate-fade-in">
+                <div>
+                  <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider block mb-1.5">
+                    🌍 Quốc gia
+                  </span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {getCountriesList(i18n.language?.startsWith('en')).map((c) => (
+                      <button
+                        key={c.code}
+                        onClick={() => {
+                          setShowCountryMenu(false);
+                          navigate(`/search?country=${c.code}`);
+                        }}
+                        className="text-[11px] text-left px-2.5 py-1.5 rounded-xl text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition font-medium"
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-800 pt-2.5">
+                  <span className="text-[10px] font-extrabold text-cyan-400 uppercase tracking-wider block mb-1.5">
+                    📅 Năm phát hành
+                  </span>
+                  <div className="grid grid-cols-3 gap-1">
+                    {YEARS_LIST.map((y) => (
+                      <button
+                        key={y}
+                        onClick={() => {
+                          setShowCountryMenu(false);
+                          navigate(`/search?year=${y}`);
+                        }}
+                        className="text-[11px] text-center px-2 py-1.5 rounded-xl text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 transition font-medium"
+                      >
+                        {y}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ③ Diễn viên */}
           <button
-            onClick={() => navigate('/compare?tab=movie')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition ${
-              location.pathname === '/compare' && location.search.includes('tab=movie')
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                : 'text-slate-300 hover:text-white hover:bg-slate-900'
+            onClick={() => navigate('/actors')}
+            className={`px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              isActive('/actors')
+                ? 'bg-pink-500/10 text-pink-400 border border-pink-500/30 font-bold'
+                : 'text-slate-200 hover:text-pink-400 hover:bg-slate-900/80'
             }`}
           >
-            <Film className="w-4 h-4 text-cyan-400" />
-            <span className="hidden md:inline">So sánh Phim</span>
+            <span>{t('nav.actors')}</span>
           </button>
 
+          {/* ④ Ngẫu Nhiên */}
           <button
-            onClick={() => navigate('/compare?tab=actor')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition ${
-              location.pathname === '/compare' && !location.search.includes('tab=movie')
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                : 'text-slate-300 hover:text-white hover:bg-slate-900'
-            }`}
+            onClick={handleRandomMovie}
+            className="px-3 py-2 rounded-xl text-xs font-bold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/30 transition cursor-pointer flex items-center space-x-1"
+            title="Đổi gió xem phim ngẫu nhiên"
           >
-            <GitCompare className="w-4 h-4 text-amber-400" />
-            <span className="hidden md:inline">So sánh Diễn viên</span>
+            <Shuffle className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">{t('nav.random')}</span>
           </button>
 
-          <button
-            onClick={() => navigate('/search')}
-            aria-label={t('nav.search')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 transition ${
-              isActive('/search')
-                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                : 'text-slate-300 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <Filter className="w-4 h-4 text-emerald-400" />
-            <span className="hidden sm:inline">{t('nav.search')}</span>
-          </button>
-
+          {/* Idol Link */}
           <button
             onClick={() => navigate('/following')}
-            aria-label={t('nav.idols')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 transition ${
+            aria-label="Idol của tôi"
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition ${
               isActive('/following')
                 ? 'bg-pink-500/10 text-pink-400 border border-pink-500/30'
                 : 'text-slate-300 hover:text-white hover:bg-slate-900'
             }`}
           >
-            <Heart className="w-4 h-4 text-pink-400" />
-            <span className="hidden sm:inline">{t('nav.idols')}</span>
-          </button>
-
-          {/* Language Switcher */}
-          <button
-            onClick={toggleLanguage}
-            aria-label="Đổi ngôn ngữ giao diện"
-            className="p-2.5 text-slate-400 hover:text-amber-400 rounded-xl hover:bg-slate-900 border border-transparent hover:border-slate-800 transition flex items-center space-x-1"
-            title="Đổi ngôn ngữ"
-          >
-            <Globe className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase">{i18n.language}</span>
+            <Heart className="w-3.5 h-3.5 text-pink-400" />
+            <span className="hidden lg:inline">{t('nav.idols')}</span>
           </button>
 
           {/* Notification Bell */}
           <button
             onClick={() => setShowNotifDrawer(true)}
             aria-label="Thông báo"
-            className="relative p-2.5 text-slate-400 hover:text-amber-400 rounded-xl hover:bg-slate-900 border border-transparent hover:border-slate-800 transition"
+            className="relative p-2 text-slate-400 hover:text-amber-400 rounded-xl hover:bg-slate-900 border border-transparent hover:border-slate-800 transition"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
@@ -261,6 +392,20 @@ export const Header: React.FC<HeaderProps> = ({
                 {unreadCount}
               </span>
             )}
+          </button>
+
+          {/* Language Switcher Toggle */}
+          <button
+            onClick={() => {
+              const currentLang = i18n.language || 'vi';
+              const nextLang = currentLang.startsWith('en') ? 'vi' : 'en';
+              i18n.changeLanguage(nextLang);
+            }}
+            className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-200 hover:text-amber-400 hover:bg-slate-900 border border-slate-800 flex items-center space-x-1.5 transition cursor-pointer"
+            title="Chuyển đổi Ngôn ngữ / Switch Language"
+          >
+            <Globe className="w-3.5 h-3.5 text-amber-400" />
+            <span className="uppercase text-[11px] font-black">{i18n.language?.startsWith('en') ? 'EN' : 'VI'}</span>
           </button>
 
           {/* Auth Button */}
@@ -279,11 +424,11 @@ export const Header: React.FC<HeaderProps> = ({
           ) : (
             <button
               onClick={() => setShowAuthModal(true)}
-              aria-label={t('auth.login')}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs hover:from-amber-400 transition shadow-lg flex items-center space-x-1.5"
+              aria-label="Đăng nhập"
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs hover:from-amber-400 transition shadow-lg flex items-center space-x-1.5"
             >
               <UserIcon className="w-3.5 h-3.5 fill-slate-950" />
-              <span>{t('auth.login')}</span>
+              <span>Đăng nhập</span>
             </button>
           )}
         </nav>

@@ -18,6 +18,26 @@ const PORT = Number(process.env.PORT) || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Simple in-memory rate limiter for AI routes (max 30 requests per minute per IP)
+const aiRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const aiRateLimiter = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const ip = req.ip || '127.0.0.1';
+  const now = Date.now();
+  const limit = aiRateLimitMap.get(ip);
+
+  if (!limit || now > limit.resetTime) {
+    aiRateLimitMap.set(ip, { count: 1, resetTime: now + 60000 });
+    return next();
+  }
+
+  if (limit.count >= 30) {
+    return res.status(429).json({ success: false, message: 'Quá nhiều yêu cầu AI, vui lòng thử lại sau ít phút.' });
+  }
+
+  limit.count++;
+  next();
+};
+
 // API Routes
 // Movies
 app.get('/api/movies/trending', getTrendingMovies);
@@ -32,9 +52,9 @@ app.get('/api/actors/popular', getPopularActors);
 app.get('/api/actors/compare', compareActors);
 app.get('/api/actors/network', getActorNetworkGraph);
 app.get('/api/actors/:id', getActorDetails);
-app.post('/api/ai/translate', translateText);
-app.post('/api/ai/enrich-actor', enrichActorInsight);
-app.post('/api/ai/chat', chatWithAIController);
+app.post('/api/ai/translate', aiRateLimiter, translateText);
+app.post('/api/ai/enrich-actor', aiRateLimiter, enrichActorInsight);
+app.post('/api/ai/chat', aiRateLimiter, chatWithAIController);
 
 // User, Follows & Notifications
 app.get('/api/user/follows', getFollows);

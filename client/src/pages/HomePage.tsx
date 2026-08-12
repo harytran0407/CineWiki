@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Movie, Actor } from '../types';
 import { ImgWithFallback } from '../components/ImgWithFallback';
+import { useTranslation } from 'react-i18next';
+import { getMovieTitle } from '../utils/langUtils';
 import { Film, Star, Sparkles, GitCompare, Play, Heart, ChevronRight, User, Calendar, ChevronLeft } from 'lucide-react';
 
 interface HomePageProps {
@@ -11,7 +12,6 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollow }) => {
-  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   // Trending Movies State & Pagination (15 movies per page)
@@ -24,13 +24,14 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
   const [upcomingMovies, setUpcomingMovies] = useState<Movie[]>([]);
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [upcomingTotalPages, setUpcomingTotalPages] = useState(10);
+  const { t, i18n } = useTranslation();
   const [loadingUpcoming, setLoadingUpcoming] = useState(true);
 
   // Popular Actors State
   const [popularActors, setPopularActors] = useState<Actor[]>([]);
   const [loadingActors, setLoadingActors] = useState(true);
 
-  const lang = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+  const lang = i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN';
 
   // Fetch Trending Movies
   useEffect(() => {
@@ -113,17 +114,14 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
         )}
 
         <div className="relative z-10 p-6 sm:p-12 max-w-3xl space-y-4">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Nền tảng Tra cứu Điện ảnh Độc quyền</span>
-          </div>
+
 
           <h1 className="text-3xl sm:text-5xl font-black text-slate-100 leading-tight">
-            {t('hero.title')}
+            CineWiki - Khám Phá Điện Ảnh Thế Giới
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 line-clamp-3">
-            {t('hero.subtitle')}
+            Khám phá kho tàng điện ảnh thế giới với thông tin chi tiết về phim, diễn viên và đạo diễn hàng đầu.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-4">
@@ -165,10 +163,9 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
             </div>
             <div>
               <h2 className="text-2xl font-black text-slate-100 flex items-center space-x-2">
-                <span>🔥 Phim Đang Thịnh Hành</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">TMDB Live</span>
+                <span>Phim Đang Thịnh Hành</span>
               </h2>
-              <p className="text-xs text-slate-400">Các tác phẩm có lượng xem và quan tâm cao nhất thế giới (Hiển thị 15 phim / trang)</p>
+              <p className="text-xs text-slate-400">Các tác phẩm có lượng xem và quan tâm cao nhất thế giới </p>
             </div>
           </div>
         </div>
@@ -194,15 +191,17 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
                     alt={movie.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
-                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-bold text-amber-400 border border-amber-400/30 flex items-center space-x-1">
-                    <Star className="w-3 h-3 fill-amber-400" />
-                    <span>{movie.vote_average}</span>
-                  </div>
+                  {movie.vote_average > 0 && (
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-bold text-amber-400 border border-amber-400/30 flex items-center space-x-1">
+                      <Star className="w-3 h-3 fill-amber-400" />
+                      <span>{movie.vote_average}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-3 flex-1 flex flex-col justify-between">
                   <h3 className="text-xs font-bold text-slate-100 truncate group-hover:text-amber-300 transition">
-                    {movie.title}
+                    {getMovieTitle(movie, i18n.language)}
                   </h3>
                   <p className="text-[10px] text-slate-400 mt-1">
                     {movie.release_date ? movie.release_date.split('-')[0] : ''} • {movie.genres?.[0]?.name || 'Điện ảnh'}
@@ -248,10 +247,9 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
             </div>
             <div>
               <h2 className="text-2xl font-black text-slate-100 flex items-center space-x-2">
-                <span>🚀 Phim Sắp Khởi Chiếu (Upcoming)</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Lịch Chiếu Tương Lai</span>
+                <span>Phim Sắp Khởi Chiếu</span>
               </h2>
-              <p className="text-xs text-slate-400">Các siêu bom tấn khởi chiếu sau ngày hiện tại (Hiển thị 15 phim / trang)</p>
+              <p className="text-xs text-slate-400">Các siêu bom tấn sắp khởi chiếu</p>
             </div>
           </div>
         </div>
@@ -277,14 +275,12 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
                     alt={movie.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
-                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-cyan-950/90 backdrop-blur-md text-[10px] font-bold text-cyan-300 border border-cyan-400/40 flex items-center space-x-1">
-                    <span>{movie.release_date || 'Sắp chiếu'}</span>
-                  </div>
+
                 </div>
 
                 <div className="p-3 flex-1 flex flex-col justify-between">
                   <h3 className="text-xs font-bold text-slate-100 truncate group-hover:text-cyan-300 transition">
-                    {movie.title}
+                    {getMovieTitle(movie, i18n.language)}
                   </h3>
                   <p className="text-[10px] text-cyan-400 font-semibold mt-1 truncate">
                     Khởi chiếu: {movie.release_date || 'Tương lai'}
@@ -329,7 +325,7 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
               <User className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-100">{t('home.featuredActors')}</h2>
+              <h2 className="text-2xl font-black text-slate-100">Diễn viên Nổi bật</h2>
               <p className="text-xs text-slate-400">Các diễn viên hàng đầu đang dẫn dắt phòng vé toàn cầu</p>
             </div>
           </div>
@@ -375,14 +371,14 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
 
                   <button
                     onClick={() => onToggleFollow(actor.id)}
-                    aria-label={isFollowing ? t('home.following') : t('home.follow')}
+                    aria-label={isFollowing ? 'Đang theo dõi' : 'Theo dõi'}
                     className={`w-full py-1.5 px-3 rounded-full text-xs font-semibold flex items-center justify-center space-x-1.5 transition cursor-pointer ${isFollowing
-                        ? 'bg-slate-800 text-pink-400 border border-pink-500/30'
-                        : 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:from-amber-400 hover:to-amber-500 font-bold'
+                      ? 'bg-slate-800 text-pink-400 border border-pink-500/30'
+                      : 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:from-amber-400 hover:to-amber-500 font-bold'
                       }`}
                   >
                     <Heart className={`w-3.5 h-3.5 ${isFollowing ? 'fill-pink-400 text-pink-400' : ''}`} />
-                    <span>{isFollowing ? t('home.following') : t('home.follow')}</span>
+                    <span>{isFollowing ? 'Đang theo dõi' : 'Theo dõi'}</span>
                   </button>
                 </div>
               );

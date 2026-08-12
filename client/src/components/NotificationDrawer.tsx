@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Film, Award, Cake, CheckCheck, X } from 'lucide-react';
 import { Notification } from '../types';
@@ -12,7 +11,6 @@ interface NotificationDrawerProps {
 }
 
 export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ notifications, onClose, onMarkRead }) => {
-  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const getIcon = (type: Notification['type']) => {
@@ -41,13 +39,13 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ notifica
       <div className="flex items-center justify-between px-4 py-3 bg-slate-900/90 border-b border-slate-800">
         <div className="flex items-center space-x-2">
           <Bell className="w-4 h-4 text-amber-400" />
-          <span className="font-semibold text-sm text-amber-200">{t('notif.title')}</span>
+          <span className="font-semibold text-sm text-amber-200">🔔 Thông báo</span>
         </div>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => onMarkRead('all')}
-            title={t('notif.markAllRead')}
-            aria-label={t('notif.markAllRead')}
+            title="Đánh dấu tất cả đã đọc"
+            aria-label="Đánh dấu tất cả đã đọc"
             className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-400 transition"
           >
             <CheckCheck className="w-4 h-4" />
@@ -64,7 +62,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ notifica
 
       <div className="max-h-96 overflow-y-auto divide-y divide-slate-800/60">
         {notifications.length === 0 ? (
-          <div className="p-6 text-center text-slate-400 text-sm">{t('notif.noNotifications')}</div>
+          <div className="p-6 text-center text-slate-400 text-sm">Không có thông báo nào.</div>
         ) : (
           notifications.map((notif) => (
             <div
@@ -86,7 +84,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ notifica
                   {getIcon(notif.type)}
                 </div>
                 <p className="text-xs text-slate-200 font-medium line-clamp-2">
-                  {i18n.language === 'vi' ? notif.content_vi : notif.content}
+                  {notif.content_vi || notif.content}
                 </p>
                 <span className="text-[10px] text-slate-500 mt-1 block">
                   {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

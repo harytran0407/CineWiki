@@ -96,8 +96,8 @@ export const chatWithAIController = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Message is required' });
     }
 
-    const reply = await AIService.chatWithAI(message, history || []);
-    return res.json({ success: true, reply });
+    const result = await AIService.chatWithAI(message, history || []);
+    return res.json({ success: true, reply: result.reply, followUpQuestions: result.followUpQuestions });
   } catch (error) {
     return res.status(500).json({ success: false, message: (error as Error).message });
   }

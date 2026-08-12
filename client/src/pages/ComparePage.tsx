@@ -1,14 +1,58 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { ActorComparison, Actor } from '../types';
 import { ImgWithFallback } from '../components/ImgWithFallback';
+import { useTranslation } from 'react-i18next';
+import { getMovieTitle } from '../utils/langUtils';
 import { GitCompare, Star, Film, Search, Sparkles, Trophy, DollarSign, Calendar, Flame, CheckCircle, Award as AwardIcon, ArrowLeftRight } from 'lucide-react';
 
+const POPULAR_MOVIES_SUGGESTIONS = [
+  { id: 872585, title: 'Oppenheimer', original_title: 'Oppenheimer', title_vi: 'Oppenheimer', poster_path: 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg' },
+  { id: 693134, title: 'Dune: Part Two', original_title: 'Dune: Part Two', title_vi: 'Hành Tinh Cát: Phần Hai', poster_path: 'https://image.tmdb.org/t/p/w500/8QdnKQyZDlN6rBSrfU1V5PctfUu.jpg' },
+  { id: 157336, title: 'Interstellar', original_title: 'Interstellar', title_vi: 'Hố Đen Vũ Trụ (Interstellar)', poster_path: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg' },
+  { id: 27205, title: 'Inception', original_title: 'Inception', title_vi: 'Kẻ Đánh Cắp Giấc Mơ (Inception)', poster_path: 'https://image.tmdb.org/t/p/w500/eBtqGWtR5KUiNl6OXHLR3ri6nVm.jpg' },
+  { id: 19995, title: 'Avatar', original_title: 'Avatar', title_vi: 'Avatar', poster_path: 'https://image.tmdb.org/t/p/w500/bxp5IUY05jLGeZ5bW85W2NF6Rgi.jpg' },
+  { id: 155, title: 'The Dark Knight', original_title: 'The Dark Knight', title_vi: 'Kỵ Sĩ Bóng Đêm (The Dark Knight)', poster_path: 'https://image.tmdb.org/t/p/w500/7EfSqviKvXwbiGhUjHyUBGVdoiW.jpg' },
+  { id: 299534, title: 'Avengers: Endgame', original_title: 'Avengers: Endgame', title_vi: 'Biệt Đội Siêu Anh Hùng: Hồi Kết', poster_path: 'https://image.tmdb.org/t/p/w500/8go3YE9sBMQaCXEx23j6BAfeuxd.jpg' },
+  { id: 569094, title: 'Spider-Man', original_title: 'Spider-Man: Across the Spider-Verse', title_vi: 'Spider-Man: Du Hành Vũ Trụ Nhện', poster_path: 'https://image.tmdb.org/t/p/w500/paM6UdMgXuXyAK0jhGfV07o3lRW.jpg' }
+];
+
+const formatRevenue = (val?: string | number): string => {
+  if (!val) return 'Chưa có dữ liệu';
+  const str = String(val);
+  const num = parseMoneyNum(str);
+  if (isNaN(num) || num <= 0) return str;
+
+  if (num >= 1000000000) {
+    const bill = (num / 1000000000).toFixed(2).replace(/\.00$/, '');
+    return `$${bill} Tỷ USD`;
+  }
+  if (num >= 1000000) {
+    const mill = (num / 1000000).toFixed(1).replace(/\.0$/, '');
+    return `$${mill} Triệu USD`;
+  }
+  return `$${num.toLocaleString()}`;
+};
+
+const parseMoneyNum = (val?: string | number): number => {
+  if (!val) return 0;
+  const str = String(val);
+  if (str.includes('Tỷ USD')) {
+    const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+    return isNaN(num) ? 0 : num * 1000000000;
+  }
+  if (str.includes('Triệu USD')) {
+    const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+    return isNaN(num) ? 0 : num * 1000000;
+  }
+  const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+  return isNaN(num) ? 0 : num;
+};
+
 export const ComparePage: React.FC = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t, i18n } = useTranslation();
 
   const actorAId = parseInt(searchParams.get('a') || searchParams.get('actor1') || '2038', 10);
   const actorBId = parseInt(searchParams.get('b') || searchParams.get('actor2') || '3223', 10);
@@ -30,13 +74,66 @@ export const ComparePage: React.FC = () => {
   }, [searchParams]);
 
   // Movie Comparison State
-  const [movieAId, setMovieAId] = useState<number>(872585); // Oppenheimer
-  const [movieBId, setMovieBId] = useState<number>(157336); // Interstellar
+  const paramMa = searchParams.get('ma') || searchParams.get('movie1');
+  const paramMb = searchParams.get('mb') || searchParams.get('movie2');
+
+  const [movieAId, setMovieAId] = useState<number>(() => {
+    return paramMa ? parseInt(paramMa, 10) : 872585;
+  });
+  const [movieBId, setMovieBId] = useState<number>(() => {
+    return paramMb ? parseInt(paramMb, 10) : 157336;
+  });
+
+  useEffect(() => {
+    const ma = searchParams.get('ma') || searchParams.get('movie1');
+    const mb = searchParams.get('mb') || searchParams.get('movie2');
+    if (ma) {
+      const pMa = parseInt(ma, 10);
+      if (!isNaN(pMa)) setMovieAId(pMa);
+    }
+    if (mb) {
+      const pMb = parseInt(mb, 10);
+      if (!isNaN(pMb)) setMovieBId(pMb);
+    }
+  }, [searchParams]);
+
   const [movieComparison, setMovieComparison] = useState<any>(null);
+  const [movieLoading, setMovieLoading] = useState(false);
+  const [movieError, setMovieError] = useState<string | null>(null);
   const [searchMovieA, setSearchMovieA] = useState('');
   const [searchMovieB, setSearchMovieB] = useState('');
   const [liveMoviesA, setLiveMoviesA] = useState<any[]>([]);
   const [liveMoviesB, setLiveMoviesB] = useState<any[]>([]);
+
+  const handleSelectMovieA = (selected: any) => {
+    const id = typeof selected === 'object' ? selected.id : selected;
+    if (id === movieBId) return;
+    setMovieComparison(null);
+    setMovieAId(id);
+    setSearchMovieA('');
+    setLiveMoviesA([]);
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev);
+      updated.set('tab', 'movie');
+      updated.set('ma', id.toString());
+      return updated;
+    });
+  };
+
+  const handleSelectMovieB = (selected: any) => {
+    const id = typeof selected === 'object' ? selected.id : selected;
+    if (id === movieAId) return;
+    setMovieComparison(null);
+    setMovieBId(id);
+    setSearchMovieB('');
+    setLiveMoviesB([]);
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev);
+      updated.set('tab', 'movie');
+      updated.set('mb', id.toString());
+      return updated;
+    });
+  };
 
   // Search input state for picking Actor A and Actor B
   const [searchA, setSearchA] = useState('');
@@ -87,14 +184,27 @@ export const ComparePage: React.FC = () => {
   // Fetch Movie Comparison
   useEffect(() => {
     if (compareTab === 'movie') {
-      fetch(`/api/movies/compare?a=${movieAId}&b=${movieBId}`)
+      setMovieLoading(true);
+      setMovieError(null);
+      const langParam = i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN';
+      fetch(`/api/movies/compare?a=${movieAId}&b=${movieBId}&lang=${langParam}`)
         .then((r) => r.json())
         .then((d) => {
-          if (d.success) setMovieComparison(d.data);
+          if (d.success) {
+            setMovieComparison(d.data);
+          } else {
+            setMovieError(d.message || 'Không thể so sánh phim');
+          }
         })
-        .catch((e) => console.error(e));
+        .catch((e) => {
+          console.error(e);
+          setMovieError('Lỗi kết nối khi so sánh phim');
+        })
+        .finally(() => {
+          setMovieLoading(false);
+        });
     }
-  }, [compareTab, movieAId, movieBId]);
+  }, [compareTab, movieAId, movieBId, i18n.language]);
 
   // Live search for Actor A
   useEffect(() => {
@@ -147,9 +257,10 @@ export const ComparePage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
+        const langParam = i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN';
         const [compRes, actRes] = await Promise.all([
-          fetch(`/api/actors/compare?a=${actorAId}&b=${actorBId}`),
-          fetch(`/api/actors/popular`)
+          fetch(`/api/actors/compare?a=${actorAId}&b=${actorBId}&lang=${langParam}`),
+          fetch(`/api/actors/popular?lang=${langParam}`)
         ]);
         if (!compRes.ok) throw new Error('Không thể tải dữ liệu so sánh');
         const compData = await compRes.json();
@@ -171,7 +282,7 @@ export const ComparePage: React.FC = () => {
     };
 
     fetchData();
-  }, [actorAId, actorBId]);
+  }, [actorAId, actorBId, i18n.language]);
 
   const handleSelectActorA = (id: number) => {
     if (id === actorBId) return; // Prevent selecting the same actor
@@ -222,580 +333,722 @@ export const ComparePage: React.FC = () => {
     <div className="space-y-12 pb-16">
       {/* Header Banner */}
       <div className="text-center max-w-2xl mx-auto space-y-3">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
-          <GitCompare className="w-3.5 h-3.5" />
-          <span>Bảng So Sánh Điện Ảnh Đa Chiều</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-slate-100">{t('compare.title')}</h1>
+
+        <h1 className="text-3xl sm:text-4xl font-black text-slate-100">So Sánh Diễn Viên &amp; Phim</h1>
         <p className="text-xs sm:text-sm text-slate-400">Phân tích toàn diện chỉ số sự nghiệp, giải thưởng chính thức và thành công thương mại.</p>
       </div>
 
 
 
-      {/* Compare Mode Tabs */}
+      {/* Compare Mode Sub-Tabs */}
       <div className="flex justify-center">
         <div className="p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl inline-flex space-x-2 shadow-xl">
           <button
-            onClick={() => setCompareTab('actor')}
-            className={`px-6 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition cursor-pointer ${
-              compareTab === 'actor'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-            }`}
+            onClick={() => {
+              setCompareTab('movie');
+              setSearchParams((prev) => {
+                const updated = new URLSearchParams(prev);
+                updated.set('tab', 'movie');
+                return updated;
+              });
+            }}
+            className={`px-6 py-2.5 rounded-xl text-xs font-extrabold flex items-center space-x-2 transition cursor-pointer ${compareTab === 'movie'
+              ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-slate-950 shadow-lg'
+              : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+              }`}
           >
-            <span>🎭 So sánh Diễn viên</span>
+            <span>So sánh Phim</span>
           </button>
+
           <button
-            onClick={() => setCompareTab('movie')}
-            className={`px-6 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition cursor-pointer ${
-              compareTab === 'movie'
-                ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-slate-950 shadow-lg'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-            }`}
+            onClick={() => {
+              setCompareTab('actor');
+              setSearchParams((prev) => {
+                const updated = new URLSearchParams(prev);
+                updated.set('tab', 'actor');
+                return updated;
+              });
+            }}
+            className={`px-6 py-2.5 rounded-xl text-xs font-extrabold flex items-center space-x-2 transition cursor-pointer ${compareTab === 'actor'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg'
+              : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+              }`}
           >
-            <span>🎬 So sánh Bộ Phim</span>
+            <span>So sánh Diễn viên</span>
           </button>
         </div>
       </div>
 
       {compareTab === 'movie' ? (
-        <div className="space-y-8 animate-fade-in">
-          {/* Movie Pickers */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Movie A Picker */}
-            <div className="glass-panel-glow rounded-3xl p-6 border border-amber-500/30 space-y-5 text-center relative">
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">Chọn Phim A</span>
-              <div className="relative">
-                <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchMovieA}
-                  onChange={(e) => setSearchMovieA(e.target.value)}
-                  placeholder="Gõ tìm phim A (TMDB)..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-amber-500/30 rounded-xl text-xs text-slate-100 focus:outline-none"
-                />
-                {liveMoviesA.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-amber-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
-                    {liveMoviesA.map((m) => (
-                      <div
-                        key={`mA-${m.id}`}
-                        onClick={() => { setMovieAId(m.id); setSearchMovieA(''); setLiveMoviesA([]); }}
-                        className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer text-xs"
-                      >
-                        <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-8 h-12 object-cover rounded-md" />
-                        <span className="font-bold text-slate-200">{m.title} ({m.release_date?.split('-')[0]})</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {movieComparison?.movieA && (
-                <div onClick={() => navigate(`/movie/${movieComparison.movieA.id}`)} className="cursor-pointer group flex flex-col items-center">
-                  <div className="w-32 h-48 rounded-2xl overflow-hidden border-2 border-amber-400/60 shadow-xl mb-3 bg-slate-900 group-hover:scale-105 transition transform">
-                    <ImgWithFallback src={movieComparison.movieA.poster_path} type="poster" alt={movieComparison.movieA.title} className="w-full h-full object-cover" />
-                  </div>
-                  <h3 className="text-base font-bold text-slate-100 group-hover:text-amber-300 transition">{movieComparison.movieA.title}</h3>
-                  <p className="text-xs text-amber-400">⭐ IMDb {movieComparison.movieA.vote_average} / 10</p>
-                </div>
-              )}
+        movieLoading && !movieComparison ? (
+          <div className="space-y-6 pt-4 animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="h-72 rounded-3xl skeleton-box" />
+              <div className="h-72 rounded-3xl skeleton-box" />
             </div>
-
-            {/* Movie B Picker */}
-            <div className="glass-panel-glow rounded-3xl p-6 border border-cyan-500/30 space-y-5 text-center relative">
-              <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block">Chọn Phim B</span>
-              <div className="relative">
-                <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchMovieB}
-                  onChange={(e) => setSearchMovieB(e.target.value)}
-                  placeholder="Gõ tìm phim B (TMDB)..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-cyan-500/30 rounded-xl text-xs text-slate-100 focus:outline-none"
-                />
-                {liveMoviesB.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-cyan-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
-                    {liveMoviesB.map((m) => (
-                      <div
-                        key={`mB-${m.id}`}
-                        onClick={() => { setMovieBId(m.id); setSearchMovieB(''); setLiveMoviesB([]); }}
-                        className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer text-xs"
-                      >
-                        <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-8 h-12 object-cover rounded-md" />
-                        <span className="font-bold text-slate-200">{m.title} ({m.release_date?.split('-')[0]})</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {movieComparison?.movieB && (
-                <div onClick={() => navigate(`/movie/${movieComparison.movieB.id}`)} className="cursor-pointer group flex flex-col items-center">
-                  <div className="w-32 h-48 rounded-2xl overflow-hidden border-2 border-cyan-400/60 shadow-xl mb-3 bg-slate-900 group-hover:scale-105 transition transform">
-                    <ImgWithFallback src={movieComparison.movieB.poster_path} type="poster" alt={movieComparison.movieB.title} className="w-full h-full object-cover" />
-                  </div>
-                  <h3 className="text-base font-bold text-slate-100 group-hover:text-cyan-300 transition">{movieComparison.movieB.title}</h3>
-                  <p className="text-xs text-cyan-400">⭐ IMDb {movieComparison.movieB.vote_average} / 10</p>
-                </div>
-              )}
-            </div>
+            <div className="h-96 rounded-3xl skeleton-box" />
           </div>
+        ) : movieError ? (
+          <div className="glass-panel rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4 my-12 border border-slate-800">
+            <h2 className="text-lg font-bold text-slate-200">{movieError}</h2>
+            <button
+              onClick={() => {
+                setMovieAId(872585);
+                setMovieBId(157336);
+              }}
+              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-lg transition"
+            >
+              Thử lại với Phim Mặc định
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-8 animate-fade-in">
+            {/* Movie Pickers */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Movie A Picker */}
+              <div className="glass-panel-glow rounded-3xl p-6 border border-amber-500/30 space-y-5 text-center relative">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">Chọn Phim A</span>
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchMovieA}
+                    onChange={(e) => setSearchMovieA(e.target.value)}
+                    placeholder="Gõ tìm phim A..."
+                    className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-amber-500/30 rounded-xl text-xs text-slate-100 focus:outline-none"
+                  />
+                  {liveMoviesA.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-amber-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
+                      {liveMoviesA.map((m) => (
+                        <div
+                          key={`mA-${m.id}`}
+                          onClick={() => handleSelectMovieA(m)}
+                          className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer text-xs"
+                        >
+                          <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-8 h-12 object-cover rounded-md" />
+                          <span className="font-bold text-slate-200">{m.title} ({m.release_date?.split('-')[0]})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {movieComparison?.movieA && (
+                  <div onClick={() => navigate(`/movie/${movieComparison.movieA.id}`)} className="cursor-pointer group flex flex-col items-center">
+                    <div className="w-32 h-48 rounded-2xl overflow-hidden border-2 border-amber-400/60 shadow-xl mb-3 bg-slate-900 group-hover:scale-105 transition transform">
+                      <ImgWithFallback src={movieComparison.movieA.poster_path} type="poster" alt={movieComparison.movieA.title} className="w-full h-full object-cover" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-100 group-hover:text-amber-300 transition">{getMovieTitle(movieComparison.movieA, i18n.language)}</h3>
+                    <p className="text-xs text-amber-400">IMDb {movieComparison.movieA.vote_average} / 10</p>
+                  </div>
+                )}
 
-          {/* Movie Comparison Table */}
-          {movieComparison && (
-            <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-6">
-              <div className="flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <h2 className="text-xl font-extrabold text-slate-100">Bảng So Sánh Bộ Phim Chi Tiết</h2>
+                {/* Quick Movie Suggestions A */}
+                <div className="pt-2 border-t border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 block mb-3 text-left">Gợi ý phim nhanh:</span>
+                  <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
+                    {POPULAR_MOVIES_SUGGESTIONS.map((m) => (
+                      <div
+                        key={`pickMA-${m.id}`}
+                        onClick={() => handleSelectMovieA(m)}
+                        className={`p-1.5 rounded-xl cursor-pointer border flex flex-col items-center text-center transition ${m.id === movieAId
+                          ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/40'
+                          : 'bg-slate-900/60 border-slate-800 hover:border-amber-400/40'
+                          }`}
+                      >
+                        <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-10 h-14 rounded-lg object-cover mb-1" />
+                        <span className="text-[10px] font-semibold text-slate-200 truncate w-full">{getMovieTitle(m, i18n.language)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-800 bg-slate-900/80">
-                      <th className="py-3.5 px-4 font-bold text-slate-400 uppercase tracking-wider w-1/3">Tiêu chí So sánh</th>
-                      <th onClick={() => navigate(`/movie/${movieComparison.movieA.id}`)} className="py-3.5 px-4 font-extrabold text-amber-400 w-1/3 text-center cursor-pointer hover:underline">
-                        {movieComparison.movieA.title} &rarr;
-                      </th>
-                      <th onClick={() => navigate(`/movie/${movieComparison.movieB.id}`)} className="py-3.5 px-4 font-extrabold text-cyan-400 w-1/3 text-center cursor-pointer hover:underline">
-                        {movieComparison.movieB.title} &rarr;
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/80">
-                    <tr>
-                      <td className="py-3.5 px-4 font-bold text-slate-300">⭐ Đánh giá Chuyên môn (IMDb)</td>
-                      <td className="py-3.5 px-4 text-center font-bold text-amber-400">
-                        ⭐ {movieComparison.movieA.vote_average} / 10
-                      </td>
-                      <td className="py-3.5 px-4 text-center font-bold text-cyan-400">
-                        ⭐ {movieComparison.movieB.vote_average} / 10
-                      </td>
-                    </tr>
-                    <tr className="bg-slate-900/20">
-                      <td className="py-3.5 px-4 font-bold text-slate-300">💰 Doanh thu Phòng vé</td>
-                      <td className="py-3.5 px-4 text-center font-bold text-slate-200">{movieComparison.movieA.box_office || '$850 Triệu USD'}</td>
-                      <td className="py-3.5 px-4 text-center font-bold text-slate-200">{movieComparison.movieB.box_office || '$1.2 Tỷ USD'}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-3.5 px-4 font-bold text-slate-300">💵 Kinh phí Sản xuất</td>
-                      <td className="py-3.5 px-4 text-center text-slate-300">{movieComparison.movieA.budget || '$150 Triệu USD'}</td>
-                      <td className="py-3.5 px-4 text-center text-slate-300">{movieComparison.movieB.budget || '$200 Triệu USD'}</td>
-                    </tr>
-                    <tr className="bg-slate-900/20">
-                      <td className="py-3.5 px-4 font-bold text-slate-300">⏱️ Thời lượng Phim</td>
-                      <td className="py-3.5 px-4 text-center text-slate-300">{movieComparison.movieA.runtime} phút</td>
-                      <td className="py-3.5 px-4 text-center text-slate-300">{movieComparison.movieB.runtime} phút</td>
-                    </tr>
-                    <tr>
-                      <td className="py-3.5 px-4 font-bold text-slate-300">🎬 Đạo diễn & Studio</td>
-                      <td className="py-3.5 px-4 text-center text-slate-300">{movieComparison.movieA.director} &bull; {movieComparison.movieA.studio || 'Studio'}</td>
-                      <td className="py-3.5 px-4 text-center text-slate-300">{movieComparison.movieB.director} &bull; {movieComparison.movieB.studio || 'Studio'}</td>
-                    </tr>
-                  </tbody>
-                </table>
+
+              {/* Movie B Picker */}
+              <div className="glass-panel-glow rounded-3xl p-6 border border-cyan-500/30 space-y-5 text-center relative">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block">Chọn Phim B</span>
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchMovieB}
+                    onChange={(e) => setSearchMovieB(e.target.value)}
+                    placeholder="Gõ tìm phim B..."
+                    className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-cyan-500/30 rounded-xl text-xs text-slate-100 focus:outline-none"
+                  />
+                  {liveMoviesB.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-cyan-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
+                      {liveMoviesB.map((m) => (
+                        <div
+                          key={`mB-${m.id}`}
+                          onClick={() => handleSelectMovieB(m)}
+                          className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer text-xs"
+                        >
+                          <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-8 h-12 object-cover rounded-md" />
+                          <span className="font-bold text-slate-200">{m.title} ({m.release_date?.split('-')[0]})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {movieComparison?.movieB && (
+                  <div onClick={() => navigate(`/movie/${movieComparison.movieB.id}`)} className="cursor-pointer group flex flex-col items-center">
+                    <div className="w-32 h-48 rounded-2xl overflow-hidden border-2 border-cyan-400/60 shadow-xl mb-3 bg-slate-900 group-hover:scale-105 transition transform">
+                      <ImgWithFallback src={movieComparison.movieB.poster_path} type="poster" alt={movieComparison.movieB.title} className="w-full h-full object-cover" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-100 group-hover:text-cyan-300 transition">{getMovieTitle(movieComparison.movieB, i18n.language)}</h3>
+                    <p className="text-xs text-cyan-400">IMDb {movieComparison.movieB.vote_average} / 10</p>
+                  </div>
+                )}
+
+                {/* Quick Movie Suggestions B */}
+                <div className="pt-2 border-t border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 block mb-3 text-left">Gợi ý phim nhanh:</span>
+                  <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
+                    {POPULAR_MOVIES_SUGGESTIONS.map((m) => (
+                      <div
+                        key={`pickMB-${m.id}`}
+                        onClick={() => handleSelectMovieB(m)}
+                        className={`p-1.5 rounded-xl cursor-pointer border flex flex-col items-center text-center transition ${m.id === movieBId
+                          ? 'bg-cyan-500/20 border-cyan-400 ring-2 ring-cyan-400/40'
+                          : 'bg-slate-900/60 border-slate-800 hover:border-cyan-400/40'
+                          }`}
+                      >
+                        <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-10 h-14 rounded-lg object-cover mb-1" />
+                        <span className="text-[10px] font-semibold text-slate-200 truncate w-full">{getMovieTitle(m, i18n.language)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </section>
-          )}
-        </div>
-      ) : (
+            </div>
+
+            {/* Movie Comparison Table */}
+            {movieComparison && (
+              <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-6">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <h2 className="text-xl font-extrabold text-slate-100">Bảng So Sánh Bộ Phim Chi Tiết</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-900/80">
+                        <th className="py-3.5 px-4 font-bold text-slate-400 uppercase tracking-wider w-1/5 border-r border-slate-800">Tiêu chí So sánh</th>
+                        <th onClick={() => navigate(`/movie/${movieComparison.movieA.id}`)} className="py-3.5 px-4 font-extrabold text-slate-100 w-[40%] text-center cursor-pointer hover:underline transition border-r border-slate-800">
+                          {getMovieTitle(movieComparison.movieA, i18n.language)}
+                        </th>
+                        <th onClick={() => navigate(`/movie/${movieComparison.movieB.id}`)} className="py-3.5 px-4 font-extrabold text-slate-100 w-[40%] text-center cursor-pointer hover:underline transition">
+                          {getMovieTitle(movieComparison.movieB, i18n.language)}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80">
+                      {/* 1. IMDb Rating */}
+                      <tr>
+                        <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Đánh giá Chuyên môn (IMDb)</td>
+                        <td className={`py-3.5 px-4 text-center font-bold border-r border-slate-800 ${movieComparison.movieA.vote_average > movieComparison.movieB.vote_average ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                          {movieComparison.movieA.vote_average} / 10 ⭐
+                        </td>
+                        <td className={`py-3.5 px-4 text-center font-bold ${movieComparison.movieB.vote_average > movieComparison.movieA.vote_average ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                          {movieComparison.movieB.vote_average} / 10 ⭐
+                        </td>
+                      </tr>
+
+                      {/* 2. Rotten Tomatoes Score */}
+                      {(() => {
+                        const tomA = movieComparison.movieA.rotten_tomatoes?.tomatometer;
+                        const tomB = movieComparison.movieB.rotten_tomatoes?.tomatometer;
+                        return (
+                          <tr className="bg-slate-900/20">
+                            <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Đánh giá Rotten Tomatoes</td>
+                            <td className={`py-3.5 px-4 text-center font-bold border-r border-slate-800 ${tomA && tomB && tomA > tomB ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                              {tomA != null ? `${tomA}% 🍅` : 'N/A'}
+                            </td>
+                            <td className={`py-3.5 px-4 text-center font-bold ${tomA && tomB && tomB > tomA ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                              {tomB != null ? `${tomB}% 🍅` : 'N/A'}
+                            </td>
+                          </tr>
+                        );
+                      })()}
+
+                      {/* 3. Major Awards Count & Simple List (WON awards ONLY) */}
+                      {(() => {
+                        const isWonAward = (awd: any) => {
+                          if (!awd) return false;
+                          if (awd.status === 'nominated' || awd.won === false || awd.isWinner === false) return false;
+                          const cat = (awd.category || '').toLowerCase();
+                          const name = (awd.name || '').toLowerCase();
+                          if (cat.includes('đề cử') || cat.includes('nomine') || cat.includes('nomination') || cat.includes('candidate')) return false;
+                          if (name.includes('đề cử') || name.includes('nomine') || name.includes('nomination') || name.includes('candidate')) return false;
+                          return true;
+                        };
+                        const awdA = (movieComparison.movieA.awards || []).filter(isWonAward);
+                        const awdB = (movieComparison.movieB.awards || []).filter(isWonAward);
+                        const countA = awdA.length;
+                        const countB = awdB.length;
+                        return (
+                          <tr>
+                            <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">
+                              Giải thưởng Nhận được
+                            </td>
+                            <td className={`py-3.5 px-4 text-left border-r border-slate-800 ${countA > countB ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                              <div className="font-extrabold text-xs mb-1 text-center">{countA} giải thưởng chính thức</div>
+                              {awdA.length > 0 && (
+                                <ul className="list-disc list-inside space-y-1 text-xs text-slate-200 font-normal">
+                                  {awdA.map((a: any, idx: number) => (
+                                    <li key={idx}>
+                                      <span className="font-bold text-slate-100">{a.name} ({a.year || 2024})</span>
+                                      {a.category && <span className="text-slate-300"> - {a.category}</span>}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </td>
+                            <td className={`py-3.5 px-4 text-left ${countB > countA ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                              <div className="font-extrabold text-xs mb-1 text-center">{countB} giải thưởng chính thức</div>
+                              {awdB.length > 0 && (
+                                <ul className="list-disc list-inside space-y-1 text-xs text-slate-200 font-normal">
+                                  {awdB.map((a: any, idx: number) => (
+                                    <li key={idx}>
+                                      <span className="font-bold text-slate-100">{a.name} ({a.year || 2024})</span>
+                                      {a.category && <span className="text-slate-300"> - {a.category}</span>}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })()}
+
+                      {/* 4. Box Office Revenue */}
+                      {(() => {
+                        const boxNumA = parseMoneyNum(movieComparison.movieA.box_office);
+                        const boxNumB = parseMoneyNum(movieComparison.movieB.box_office);
+                        return (
+                          <tr className="bg-slate-900/20">
+                            <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Doanh thu Phòng vé</td>
+                            <td className={`py-3.5 px-4 text-center font-bold border-r border-slate-800 ${boxNumA > boxNumB ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                              {movieComparison.movieA.box_office ? formatRevenue(movieComparison.movieA.box_office) : 'Chưa có dữ liệu'}
+                            </td>
+                            <td className={`py-3.5 px-4 text-center font-bold ${boxNumB > boxNumA ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                              {movieComparison.movieB.box_office ? formatRevenue(movieComparison.movieB.box_office) : 'Chưa có dữ liệu'}
+                            </td>
+                          </tr>
+                        );
+                      })()}
+
+                      {/* 5. Production Budget */}
+                      {(() => {
+                        const budNumA = parseMoneyNum(movieComparison.movieA.budget);
+                        const budNumB = parseMoneyNum(movieComparison.movieB.budget);
+                        return (
+                          <tr>
+                            <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Kinh phí Sản xuất</td>
+                            <td className={`py-3.5 px-4 text-center font-bold border-r border-slate-800 ${budNumA > budNumB ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                              {movieComparison.movieA.budget ? formatRevenue(movieComparison.movieA.budget) : 'Chưa có dữ liệu'}
+                            </td>
+                            <td className={`py-3.5 px-4 text-center font-bold ${budNumB > budNumA ? 'text-amber-400 font-extrabold' : 'text-slate-100'}`}>
+                              {movieComparison.movieB.budget ? formatRevenue(movieComparison.movieB.budget) : 'Chưa có dữ liệu'}
+                            </td>
+                          </tr>
+                        );
+                      })()}
+
+                      {/* 6. Release Date */}
+                      {(() => {
+                        const formatDate = (dStr?: string) => {
+                          if (!dStr) return 'N/A';
+                          const parts = dStr.split('-');
+                          if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                          return dStr;
+                        };
+                        return (
+                          <tr className="bg-slate-900/20">
+                            <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Ngày phát hành</td>
+                            <td className="py-3.5 px-4 text-center text-slate-100 border-r border-slate-800">
+                              {formatDate(movieComparison.movieA.release_date)}
+                            </td>
+                            <td className="py-3.5 px-4 text-center text-slate-100">
+                              {formatDate(movieComparison.movieB.release_date)}
+                            </td>
+                          </tr>
+                        );
+                      })()}
+
+                      {/* 7. Runtime */}
+                      <tr>
+                        <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Thời lượng Phim</td>
+                        <td className="py-3.5 px-4 text-center border-r border-slate-800 text-slate-100">
+                          {movieComparison.movieA.runtime || 120} phút
+                        </td>
+                        <td className="py-3.5 px-4 text-center text-slate-100">
+                          {movieComparison.movieB.runtime || 120} phút
+                        </td>
+                      </tr>
+
+                      {/* 8. Director */}
+                      <tr className="bg-slate-900/20">
+                        <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Đạo diễn</td>
+                        <td className="py-3.5 px-4 text-center text-slate-100 border-r border-slate-800">{movieComparison.movieA.director || 'N/A'}</td>
+                        <td className="py-3.5 px-4 text-center text-slate-100">{movieComparison.movieB.director || 'N/A'}</td>
+                      </tr>
+
+                      {/* 9. Studio */}
+                      <tr>
+                        <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Hãng sản xuất (Studio)</td>
+                        <td className="py-3.5 px-4 text-center text-slate-100 border-r border-slate-800">{movieComparison.movieA.studio || 'Studio'}</td>
+                        <td className="py-3.5 px-4 text-center text-slate-100">{movieComparison.movieB.studio || 'Studio'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+          </div>
+        )) : (
         <>
           {/* Side by Side Interactive Selector with Search & Image Pickers */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Actor A Selector Card */}
-        <div className="glass-panel-glow rounded-3xl p-6 border border-amber-500/30 space-y-5 text-center relative">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-              {t('compare.selectActorA')}
-            </span>
-            <span className="text-[11px] text-slate-400">Click chọn ảnh để thay đổi</span>
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchA}
-              onChange={(e) => setSearchA(e.target.value)}
-              placeholder="Gõ tên tìm diễn viên A (TMDB)..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-amber-500/30 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-amber-400"
-            />
-
-            {/* Live TMDB Autocomplete Dropdown A */}
-            {liveResultsA.length > 0 && (
-              <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-amber-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
-                {liveResultsA.map((act) => (
-                  <div
-                    key={`liveA-${act.id}`}
-                    onClick={() => {
-                      handleSelectActorA(act.id);
-                      setSearchA('');
-                      setLiveResultsA([]);
-                    }}
-                    className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer transition text-xs"
-                  >
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-slate-800 border border-slate-700">
-                      <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-full h-full object-cover" />
-                    </div>
-                    <span className="font-bold text-slate-200">{act.name}</span>
-                  </div>
-                ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Actor A Selector Card */}
+            <div className="glass-panel-glow rounded-3xl p-6 border border-amber-500/30 space-y-5 text-center relative">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                  Chọn Diễn viên A
+                </span>
               </div>
-            )}
-          </div>
 
-          <div
-            onClick={() => navigate(`/actor/${actorA.id}`)}
-            className="pt-2 flex flex-col items-center cursor-pointer group hover:opacity-90 transition"
-            title="Bấm để xem thông tin chi tiết diễn viên A"
-          >
-            <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-amber-400/60 shadow-2xl mb-3 bg-slate-900 group-hover:scale-105 transition transform">
-              <ImgWithFallback src={actorA.profile_path} type="profile" alt={actorA.name} className="w-full h-full object-cover" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-100 group-hover:text-amber-300 transition flex items-center space-x-1">
-              <span>{actorA.name}</span>
-              <span className="text-[10px] text-amber-400 font-semibold">(Chi tiết &rarr;)</span>
-            </h3>
-            <p className="text-xs text-amber-300">{actorA.nationality || actorA.place_of_birth || 'Quốc tế'}</p>
-          </div>
+              <div className="relative">
+                <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchA}
+                  onChange={(e) => setSearchA(e.target.value)}
+                  placeholder="Gõ tên tìm diễn viên A (TMDB)..."
+                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-amber-500/30 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-amber-400"
+                />
 
-          <div className="pt-2 border-t border-slate-800">
-            <span className="text-[11px] font-semibold text-slate-400 block mb-3 text-left">Gợi ý diễn viên:</span>
-            <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
-              {filteredActorsA.map((a) => (
-                <div
-                  key={`pickA-${a.id}`}
-                  onClick={() => handleSelectActorA(a.id)}
-                  className={`p-1.5 rounded-xl cursor-pointer border flex flex-col items-center text-center transition ${a.id === actorA.id
-                      ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/40'
-                      : 'bg-slate-900/60 border-slate-800 hover:border-amber-400/40'
-                    }`}
-                >
-                  <ImgWithFallback src={a.profile_path} type="profile" alt={a.name} className="w-10 h-10 rounded-full object-cover mb-1" />
-                  <span className="text-[10px] font-semibold text-slate-200 truncate w-full">{a.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Actor B Selector Card */}
-        <div className="glass-panel-glow rounded-3xl p-6 border border-cyan-500/30 space-y-5 text-center relative">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
-              {t('compare.selectActorB')}
-            </span>
-            <span className="text-[11px] text-slate-400">Click chọn ảnh để thay đổi</span>
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchB}
-              onChange={(e) => setSearchB(e.target.value)}
-              placeholder="Gõ tên tìm diễn viên B (TMDB)..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-cyan-500/30 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-cyan-400"
-            />
-
-            {/* Live TMDB Autocomplete Dropdown B */}
-            {liveResultsB.length > 0 && (
-              <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-cyan-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
-                {liveResultsB.map((act) => (
-                  <div
-                    key={`liveB-${act.id}`}
-                    onClick={() => {
-                      handleSelectActorB(act.id);
-                      setSearchB('');
-                      setLiveResultsB([]);
-                    }}
-                    className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer transition text-xs"
-                  >
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-slate-800 border border-slate-700">
-                      <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-full h-full object-cover" />
-                    </div>
-                    <span className="font-bold text-slate-200">{act.name}</span>
+                {/* Live TMDB Autocomplete Dropdown A */}
+                {liveResultsA.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-amber-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
+                    {liveResultsA.map((act) => (
+                      <div
+                        key={`liveA-${act.id}`}
+                        onClick={() => {
+                          handleSelectActorA(act.id);
+                          setSearchA('');
+                          setLiveResultsA([]);
+                        }}
+                        className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer transition text-xs"
+                      >
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-slate-800 border border-slate-700">
+                          <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-full h-full object-cover" />
+                        </div>
+                        <span className="font-bold text-slate-200">{act.name}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
 
-          <div
-            onClick={() => navigate(`/actor/${actorB.id}`)}
-            className="pt-2 flex flex-col items-center cursor-pointer group hover:opacity-90 transition"
-            title="Bấm để xem thông tin chi tiết diễn viên B"
-          >
-            <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-cyan-400/60 shadow-2xl mb-3 bg-slate-900 group-hover:scale-105 transition transform">
-              <ImgWithFallback src={actorB.profile_path} type="profile" alt={actorB.name} className="w-full h-full object-cover" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-100 group-hover:text-cyan-300 transition flex items-center space-x-1">
-              <span>{actorB.name}</span>
-              <span className="text-[10px] text-cyan-400 font-semibold">(Chi tiết &rarr;)</span>
-            </h3>
-            <p className="text-xs text-cyan-300">{actorB.nationality || actorB.place_of_birth || 'Quốc tế'}</p>
-          </div>
-
-          <div className="pt-2 border-t border-slate-800">
-            <span className="text-[11px] font-semibold text-slate-400 block mb-3 text-left">Gợi ý diễn viên:</span>
-            <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
-              {filteredActorsB.map((a) => (
-                <div
-                  key={`pickB-${a.id}`}
-                  onClick={() => handleSelectActorB(a.id)}
-                  className={`p-1.5 rounded-xl cursor-pointer border flex flex-col items-center text-center transition ${a.id === actorB.id
-                      ? 'bg-cyan-500/20 border-cyan-400 ring-2 ring-cyan-400/40'
-                      : 'bg-slate-900/60 border-slate-800 hover:border-cyan-400/40'
-                    }`}
-                >
-                  <ImgWithFallback src={a.profile_path} type="profile" alt={a.name} className="w-10 h-10 rounded-full object-cover mb-1" />
-                  <span className="text-[10px] font-semibold text-slate-200 truncate w-full">{a.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* MULTI-DIMENSIONAL COMPARISON TABLE */}
-      <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-6">
-        <div className="flex items-center space-x-2">
-          <Sparkles className="w-5 h-5 text-amber-400" />
-          <h2 className="text-xl font-extrabold text-slate-100">Bảng So Sánh Tổng Hợp Đa Chiều</h2>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b border-slate-800 bg-slate-900/80">
-                <th className="py-3.5 px-4 font-bold text-slate-400 uppercase tracking-wider w-1/3">Tiêu chí So sánh</th>
-                <th onClick={() => navigate(`/actor/${actorA.id}`)} className="py-3.5 px-4 font-extrabold text-amber-400 w-1/3 text-center cursor-pointer hover:underline">
-                  {actorA.name} &rarr;
-                </th>
-                <th onClick={() => navigate(`/actor/${actorB.id}`)} className="py-3.5 px-4 font-extrabold text-cyan-400 w-1/3 text-center cursor-pointer hover:underline">
-                  {actorB.name} &rarr;
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/80">
-              {/* Basic Info */}
-              <tr className="hover:bg-slate-900/40 transition">
-                <td className="py-3.5 px-4 font-bold text-slate-300">🎂 Thông tin Cơ bản (Tuổi / Sự nghiệp)</td>
-                <td className="py-3.5 px-4 text-center font-semibold text-slate-200">
-                  {calculateAge(actorA.birthday)} &bull; {stats.actorA_career_years} năm hoạt động
-                  {stats.actorA_career_years > stats.actorB_career_years && (
-                    <span className="block w-fit mx-auto mt-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">
-                      ⏳ Dày dạn kinh nghiệm hơn
-                    </span>
-                  )}
-                </td>
-                <td className="py-3.5 px-4 text-center font-semibold text-slate-200">
-                  {calculateAge(actorB.birthday)} &bull; {stats.actorB_career_years} năm hoạt động
-                  {stats.actorB_career_years > stats.actorA_career_years && (
-                    <span className="block w-fit mx-auto mt-1 text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40">
-                      ⏳ Dày dạn kinh nghiệm hơn
-                    </span>
-                  )}
-                </td>
-              </tr>
-
-              {/* Major Physical Awards */}
-              <tr className="hover:bg-slate-900/40 transition bg-slate-900/20">
-                <td className="py-3.5 px-4 font-bold text-slate-300">🏆 Giải thưởng Thực tế (Oscar, BAFTA, Quả Cầu Vàng)</td>
-                <td className="py-3.5 px-4 text-center font-semibold text-amber-300">
-                  <div>{stats.actorA_major_awards}</div>
-                  {parseInt(stats.actorA_major_awards) > parseInt(stats.actorB_major_awards) && (
-                    <span className="inline-block mt-1 text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow-sm">
-                      👑 Thắng thế giải thưởng
-                    </span>
-                  )}
-                </td>
-                <td className="py-3.5 px-4 text-center font-semibold text-cyan-300">
-                  <div>{stats.actorB_major_awards}</div>
-                  {parseInt(stats.actorB_major_awards) > parseInt(stats.actorA_major_awards) && (
-                    <span className="inline-block mt-1 text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40 shadow-sm">
-                      👑 Thắng thế giải thưởng
-                    </span>
-                  )}
-                </td>
-              </tr>
-
-              {/* Commercial Success */}
-              <tr className="hover:bg-slate-900/40 transition">
-                <td className="py-3.5 px-4 font-bold text-slate-300">💰 Thành công Thương mại (Tổng doanh thu)</td>
-                <td className="py-3.5 px-4 text-center font-bold text-slate-100">
-                  {stats.actorA_box_office}
-                  <span className="block text-[10px] text-slate-400 font-normal mt-0.5">Phim cao nhất: {actorA.highest_grossing_movie || 'N/A'}</span>
-                  {parseFloat(stats.actorA_box_office.replace(/[^0-9.]/g, '')) > parseFloat(stats.actorB_box_office.replace(/[^0-9.]/g, '')) && (
-                    <span className="inline-block mt-1 text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">
-                      💰 Doanh thu áp đảo
-                    </span>
-                  )}
-                </td>
-                <td className="py-3.5 px-4 text-center font-bold text-slate-100">
-                  {stats.actorB_box_office}
-                  <span className="block text-[10px] text-slate-400 font-normal mt-0.5">Phim cao nhất: {actorB.highest_grossing_movie || 'N/A'}</span>
-                  {parseFloat(stats.actorB_box_office.replace(/[^0-9.]/g, '')) > parseFloat(stats.actorA_box_office.replace(/[^0-9.]/g, '')) && (
-                    <span className="inline-block mt-1 text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40">
-                      💰 Doanh thu áp đảo
-                    </span>
-                  )}
-                </td>
-              </tr>
-
-              {/* Critical Rating Average */}
-              <tr className="hover:bg-slate-900/40 transition bg-slate-900/20">
-                <td className="py-3.5 px-4 font-bold text-slate-300">⭐ Đánh giá Chuyên môn (IMDb trung bình)</td>
-                <td className="py-3.5 px-4 text-center font-black text-amber-400">
-                  ⭐ {stats.actorA_avg_rating} / 10 ({stats.actorA_total_movies} phim)
-                  {stats.actorA_avg_rating > stats.actorB_avg_rating && (
-                    <span className="block w-fit mx-auto mt-1 text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">
-                      ⭐ Điểm IMDb vượt trội
-                    </span>
-                  )}
-                </td>
-                <td className="py-3.5 px-4 text-center font-black text-cyan-400">
-                  ⭐ {stats.actorB_avg_rating} / 10 ({stats.actorB_total_movies} phim)
-                  {stats.actorB_avg_rating > stats.actorA_avg_rating && (
-                    <span className="block w-fit mx-auto mt-1 text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/40">
-                      ⭐ Điểm IMDb vượt trội
-                    </span>
-                  )}
-                </td>
-              </tr>
-
-              {/* Genre Distribution Matrix */}
-              <tr className="hover:bg-slate-900/40 transition">
-                <td className="py-3.5 px-4 font-bold text-slate-300">📊 Phân bổ Thể loại Phim (Genre Breakdown)</td>
-                <td className="py-3.5 px-4 text-center text-xs text-amber-300">
-                  <div className="flex flex-wrap justify-center gap-1.5">
-                    {stats.genre_distribution && stats.genre_distribution.filter((g) => g.actorA_count > 0).length > 0 ? (
-                      stats.genre_distribution
-                        .filter((g) => g.actorA_count > 0)
-                        .map((g, idx) => (
-                          <span key={idx} className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[11px] font-semibold">
-                            {g.genre}: {g.actorA_count} phim
-                          </span>
-                        ))
-                    ) : (
-                      <span className="text-slate-400">Chính kịch: 12 phim, Hành động: 8 phim</span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-3.5 px-4 text-center text-xs text-cyan-300">
-                  <div className="flex flex-wrap justify-center gap-1.5">
-                    {stats.genre_distribution && stats.genre_distribution.filter((g) => g.actorB_count > 0).length > 0 ? (
-                      stats.genre_distribution
-                        .filter((g) => g.actorB_count > 0)
-                        .map((g, idx) => (
-                          <span key={idx} className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 text-[11px] font-semibold">
-                            {g.genre}: {g.actorB_count} phim
-                          </span>
-                        ))
-                    ) : (
-                      <span className="text-slate-400">Chính kịch: 15 phim, Hài hước: 6 phim</span>
-                    )}
-                  </div>
-                </td>
-              </tr>
-
-              {/* Acting Style & Versatility */}
-              <tr className="hover:bg-slate-900/40 transition">
-                <td className="py-3 px-4 font-bold text-slate-300">🎭 Khả năng Biến hóa & Phong cách Diễn xuất</td>
-                <td className="py-3 px-4 text-center text-xs text-slate-300">
-                  {actorA.acting_style || 'Phương pháp diễn xuất dấn thân và nhập vai nội tâm.'}
-                </td>
-                <td className="py-3 px-4 text-center text-xs text-slate-300">
-                  {actorB.acting_style || 'Phương pháp diễn xuất cuốn hút và thần thái lôi cuốn.'}
-                </td>
-              </tr>
-
-              {/* Landmark Iconic Works */}
-              <tr className="hover:bg-slate-900/40 transition bg-slate-900/20">
-                <td className="py-3 px-4 font-bold text-slate-300">🎬 Top Tác phẩm Để đời</td>
-                <td className="py-3 px-4 text-left text-xs text-slate-200">
-                  <ul className="list-disc list-inside space-y-1">
-                    {(actorA.landmark_works || ['Oppenheimer', 'Inception', 'Peaky Blinders']).map((w, idx) => (
-                      <li key={idx}>{w}</li>
-                    ))}
-                  </ul>
-                </td>
-                <td className="py-3 px-4 text-left text-xs text-slate-200">
-                  <ul className="list-disc list-inside space-y-1">
-                    {(actorB.landmark_works || ['Iron Man', 'Avengers: Endgame', 'Sherlock Holmes']).map((w, idx) => (
-                      <li key={idx}>{w}</li>
-                    ))}
-                  </ul>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Shared Movies Section */}
-      <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
-        <div className="flex items-center space-x-2">
-          <Film className="w-5 h-5 text-amber-400" />
-          <h3 className="text-xl font-bold text-slate-100">{t('compare.sharedMovies')}</h3>
-        </div>
-
-        {shared_movies.length === 0 ? (
-          <p className="text-xs text-slate-400 italic">{t('compare.noSharedMovies')}</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {shared_movies.map((m) => (
               <div
-                key={m.id}
-                onClick={() => navigate(`/movie/${m.id}`)}
-                className="glass-panel p-4 rounded-2xl border border-amber-500/30 hover:border-amber-400 cursor-pointer flex items-center space-x-4 transition"
+                onClick={() => navigate(`/actor/${actorA.id}`)}
+                className="pt-2 flex flex-col items-center cursor-pointer group hover:opacity-90 transition"
+                title="Bấm để xem thông tin chi tiết diễn viên A"
               >
-                <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-16 h-24 object-cover rounded-xl shadow-md" />
-                <div>
-                  <h4 className="text-sm font-bold text-amber-300">{m.title} ({m.year})</h4>
-                  <p className="text-xs text-slate-300 mt-1">
-                    {actorA.name}: <span className="font-semibold text-white">{m.characterA}</span>
-                  </p>
-                  <p className="text-xs text-slate-300 mt-0.5">
-                    {actorB.name}: <span className="font-semibold text-white">{m.characterB}</span>
-                  </p>
-                  <span className="text-[10px] text-amber-400 font-bold block mt-2">⭐ IMDb {m.vote_average}</span>
+                <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-amber-400/60 shadow-2xl mb-3 bg-slate-900 group-hover:scale-105 transition transform">
+                  <ImgWithFallback src={actorA.profile_path} type="profile" alt={actorA.name} className="w-full h-full object-cover" />
                 </div>
+                <h3 className="text-lg font-bold text-slate-100 group-hover:text-amber-300 transition flex items-center space-x-1">
+                  <span>{actorA.name}</span>
+                </h3>
+                <p className="text-xs text-amber-300">{actorA.nationality || actorA.place_of_birth || 'Quốc tế'}</p>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
 
-      {/* Genre Distribution Comparison */}
-      <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
-        <h3 className="text-xl font-bold text-slate-100">{t('compare.genreDistribution')}</h3>
-        <div className="space-y-3">
-          {(() => {
-            const maxCount = Math.max(
-              1,
-              ...stats.genre_distribution.flatMap((g) => [g.actorA_count, g.actorB_count])
-            );
-            return stats.genre_distribution.map((g) => (
-              <div key={g.genre} className="space-y-1">
-                <div className="flex justify-between text-xs font-semibold text-slate-300">
-                  <span className="text-amber-400">{g.actorA_count} phim</span>
-                  <span>{g.genre}</span>
-                  <span className="text-cyan-400">{g.actorB_count} phim</span>
-                </div>
-                <div className="h-2.5 bg-slate-900 rounded-full overflow-hidden flex">
-                  <div
-                    className="bg-amber-500 h-full"
-                    style={{ width: `${Math.min(100, Math.round((g.actorA_count / maxCount) * 100))}%` }}
-                  />
-                  <div className="flex-1" />
-                  <div
-                    className="bg-cyan-500 h-full"
-                    style={{ width: `${Math.min(100, Math.round((g.actorB_count / maxCount) * 100))}%` }}
-                  />
+              <div className="pt-2 border-t border-slate-800">
+                <span className="text-[11px] font-semibold text-slate-400 block mb-3 text-left">Gợi ý diễn viên:</span>
+                <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
+                  {filteredActorsA.map((a) => (
+                    <div
+                      key={`pickA-${a.id}`}
+                      onClick={() => handleSelectActorA(a.id)}
+                      className={`p-1.5 rounded-xl cursor-pointer border flex flex-col items-center text-center transition ${a.id === actorA.id
+                        ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/40'
+                        : 'bg-slate-900/60 border-slate-800 hover:border-amber-400/40'
+                        }`}
+                    >
+                      <ImgWithFallback src={a.profile_path} type="profile" alt={a.name} className="w-10 h-10 rounded-full object-cover mb-1" />
+                      <span className="text-[10px] font-semibold text-slate-200 truncate w-full">{a.name}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ));
-          })()}
-        </div>
-      </section>
+            </div>
+
+            {/* Actor B Selector Card */}
+            <div className="glass-panel-glow rounded-3xl p-6 border border-cyan-500/30 space-y-5 text-center relative">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                  Chọn Diễn viên B
+                </span>
+                <span className="text-[11px] text-slate-400">Click chọn ảnh để thay đổi</span>
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchB}
+                  onChange={(e) => setSearchB(e.target.value)}
+                  placeholder="Gõ tên tìm diễn viên B (TMDB)..."
+                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-cyan-500/30 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-cyan-400"
+                />
+
+                {/* Live TMDB Autocomplete Dropdown B */}
+                {liveResultsB.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-cyan-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
+                    {liveResultsB.map((act) => (
+                      <div
+                        key={`liveB-${act.id}`}
+                        onClick={() => {
+                          handleSelectActorB(act.id);
+                          setSearchB('');
+                          setLiveResultsB([]);
+                        }}
+                        className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer transition text-xs"
+                      >
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-slate-800 border border-slate-700">
+                          <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-full h-full object-cover" />
+                        </div>
+                        <span className="font-bold text-slate-200">{act.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div
+                onClick={() => navigate(`/actor/${actorB.id}`)}
+                className="pt-2 flex flex-col items-center cursor-pointer group hover:opacity-90 transition"
+                title="Bấm để xem thông tin chi tiết diễn viên B"
+              >
+                <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-cyan-400/60 shadow-2xl mb-3 bg-slate-900 group-hover:scale-105 transition transform">
+                  <ImgWithFallback src={actorB.profile_path} type="profile" alt={actorB.name} className="w-full h-full object-cover" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-100 group-hover:text-cyan-300 transition flex items-center space-x-1">
+                  <span>{actorB.name}</span>
+                </h3>
+                <p className="text-xs text-cyan-300">{actorB.nationality || actorB.place_of_birth || 'Quốc tế'}</p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800">
+                <span className="text-[11px] font-semibold text-slate-400 block mb-3 text-left">Gợi ý diễn viên:</span>
+                <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
+                  {filteredActorsB.map((a) => (
+                    <div
+                      key={`pickB-${a.id}`}
+                      onClick={() => handleSelectActorB(a.id)}
+                      className={`p-1.5 rounded-xl cursor-pointer border flex flex-col items-center text-center transition ${a.id === actorB.id
+                        ? 'bg-cyan-500/20 border-cyan-400 ring-2 ring-cyan-400/40'
+                        : 'bg-slate-900/60 border-slate-800 hover:border-cyan-400/40'
+                        }`}
+                    >
+                      <ImgWithFallback src={a.profile_path} type="profile" alt={a.name} className="w-10 h-10 rounded-full object-cover mb-1" />
+                      <span className="text-[10px] font-semibold text-slate-200 truncate w-full">{a.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MULTI-DIMENSIONAL COMPARISON TABLE */}
+          <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-6">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+              <h2 className="text-xl font-extrabold text-slate-100">Bảng So Sánh Tổng Hợp Đa Chiều</h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-900/80">
+                    <th className="py-3.5 px-4 font-bold text-slate-400 uppercase tracking-wider w-1/5 border-r border-slate-800">Tiêu chí So sánh</th>
+                    <th onClick={() => navigate(`/actor/${actorA.id}`)} className="py-3.5 px-4 font-extrabold text-slate-100 w-[40%] text-center cursor-pointer hover:text-amber-400 transition border-r border-slate-800">
+                      {actorA.name}
+                    </th>
+                    <th onClick={() => navigate(`/actor/${actorB.id}`)} className="py-3.5 px-4 font-extrabold text-slate-100 w-[40%] text-center cursor-pointer hover:text-amber-400 transition">
+                      {actorB.name}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80">
+                  {/* Basic Info */}
+                  <tr className="hover:bg-slate-900/40 transition">
+                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Thông tin Cơ bản (Tuổi / Sự nghiệp)</td>
+                    <td className={`py-3.5 px-4 text-center font-medium border-r border-slate-800 ${stats.actorA_career_years > stats.actorB_career_years ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
+                      {calculateAge(actorA.birthday)} &bull; {stats.actorA_career_years} năm hoạt động
+                    </td>
+                    <td className={`py-3.5 px-4 text-center font-medium ${stats.actorB_career_years > stats.actorA_career_years ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
+                      {calculateAge(actorB.birthday)} &bull; {stats.actorB_career_years} năm hoạt động
+                    </td>
+                  </tr>
+
+                  {/* Major Physical Awards */}
+                  <tr className="hover:bg-slate-900/40 transition bg-slate-900/20">
+                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Giải thưởng (Oscar, BAFTA, Quả Cầu Vàng)</td>
+                    <td className={`py-3.5 px-4 text-left border-r border-slate-800 ${parseInt(stats.actorA_major_awards) > parseInt(stats.actorB_major_awards) ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
+                      <div className="font-extrabold text-xs mb-1 text-center">{stats.actorA_major_awards}</div>
+                      {actorA.awards && actorA.awards.length > 0 && (
+                        <ul className="list-disc list-inside space-y-1 text-xs text-slate-200 font-normal">
+                          {actorA.awards.map((awd, idx) => (
+                            <li key={idx}>
+                              <span className="font-bold text-slate-100">{awd.name} ({awd.year})</span>
+                              {awd.category && <span className="text-slate-300"> - {awd.category}</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                    <td className={`py-3.5 px-4 text-left ${parseInt(stats.actorB_major_awards) > parseInt(stats.actorA_major_awards) ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
+                      <div className="font-extrabold text-xs mb-1 text-center">{stats.actorB_major_awards}</div>
+                      {actorB.awards && actorB.awards.length > 0 && (
+                        <ul className="list-disc list-inside space-y-1 text-xs text-slate-200 font-normal">
+                          {actorB.awards.map((awd, idx) => (
+                            <li key={idx}>
+                              <span className="font-bold text-slate-100">{awd.name} ({awd.year})</span>
+                              {awd.category && <span className="text-slate-300"> - {awd.category}</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+
+                  {/* Commercial Success */}
+                  <tr className="hover:bg-slate-900/40 transition">
+                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Thành công Thương mại (Tổng doanh thu)</td>
+                    <td className={`py-3.5 px-4 text-center border-r border-slate-800 ${parseMoneyNum(stats.actorA_box_office) > parseMoneyNum(stats.actorB_box_office) ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
+                      <div>{formatRevenue(stats.actorA_box_office)}</div>
+                      <span className="block text-[10px] text-slate-400 font-normal mt-0.5">Phim cao nhất: {actorA.highest_grossing_movie || 'N/A'}</span>
+                    </td>
+                    <td className={`py-3.5 px-4 text-center ${parseMoneyNum(stats.actorB_box_office) > parseMoneyNum(stats.actorA_box_office) ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
+                      <div>{formatRevenue(stats.actorB_box_office)}</div>
+                      <span className="block text-[10px] text-slate-400 font-normal mt-0.5">Phim cao nhất: {actorB.highest_grossing_movie || 'N/A'}</span>
+                    </td>
+                  </tr>
+
+                  {/* Critical Rating Average */}
+                  <tr className="hover:bg-slate-900/40 transition bg-slate-900/20">
+                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">Đánh giá Chuyên môn (IMDb trung bình)</td>
+                    <td className={`py-3.5 px-4 text-center border-r border-slate-800 ${stats.actorA_avg_rating > stats.actorB_avg_rating ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
+                      {stats.actorA_avg_rating} / 10 ({stats.actorA_total_movies} phim)
+                    </td>
+                    <td className={`py-3.5 px-4 text-center ${stats.actorB_avg_rating > stats.actorA_avg_rating ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
+                      {stats.actorB_avg_rating} / 10 ({stats.actorB_total_movies} phim)
+                    </td>
+                  </tr>
+
+                  {/* Acting Style & Versatility */}
+                  <tr className="hover:bg-slate-900/40 transition">
+                    <td className="py-3 px-4 font-bold text-slate-300 border-r border-slate-800">Khả năng Biến hóa & Phong cách Diễn xuất</td>
+                    <td className="py-3 px-4 text-center text-xs text-slate-100 border-r border-slate-800">
+                      {actorA.acting_style || 'Phương pháp diễn xuất dấn thân và nhập vai nội tâm.'}
+                    </td>
+                    <td className="py-3 px-4 text-center text-xs text-slate-100">
+                      {actorB.acting_style || 'Phương pháp diễn xuất cuốn hút và thần thái lôi cuốn.'}
+                    </td>
+                  </tr>
+
+                  {/* Landmark Iconic Works */}
+                  <tr className="hover:bg-slate-900/40 transition bg-slate-900/20">
+                    <td className="py-3 px-4 font-bold text-slate-300 border-r border-slate-800">Tác phẩm Để đời</td>
+                    <td className="py-3 px-4 text-left text-xs text-slate-100 border-r border-slate-800">
+                      <ul className="list-disc list-inside space-y-1">
+                        {(actorA.landmark_works || ['Oppenheimer', 'Inception', 'Peaky Blinders']).map((w, idx) => (
+                          <li key={idx}>{w}</li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td className="py-3 px-4 text-left text-xs text-slate-100">
+                      <ul className="list-disc list-inside space-y-1">
+                        {(actorB.landmark_works || ['Iron Man', 'Avengers: Endgame', 'Sherlock Holmes']).map((w, idx) => (
+                          <li key={idx}>{w}</li>
+                        ))}
+                      </ul>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Shared Movies Section */}
+          <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
+            <div className="flex items-center space-x-2">
+              <Film className="w-5 h-5 text-amber-400" />
+              <h3 className="text-xl font-bold text-slate-100">Phim đã cùng đóng</h3>
+            </div>
+
+            {shared_movies.length === 0 ? (
+              <p className="text-xs text-slate-400 italic">Hai diễn viên chưa có phim chung.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {shared_movies.map((m) => (
+                  <div
+                    key={m.id}
+                    onClick={() => navigate(`/movie/${m.id}`)}
+                    className="glass-panel p-4 rounded-2xl border border-amber-500/30 hover:border-amber-400 cursor-pointer flex items-center space-x-4 transition"
+                  >
+                    <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-16 h-24 object-cover rounded-xl shadow-md" />
+                    <div>
+                      <h4 className="text-sm font-bold text-amber-300">{m.title} ({m.year})</h4>
+                      <p className="text-xs text-slate-300 mt-1">
+                        {actorA.name}: <span className="font-semibold text-white">{m.characterA}</span>
+                      </p>
+                      <p className="text-xs text-slate-300 mt-0.5">
+                        {actorB.name}: <span className="font-semibold text-white">{m.characterB}</span>
+                      </p>
+                      <span className="text-[10px] text-amber-400 font-bold block mt-2">⭐ IMDb {m.vote_average}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Genre Distribution Comparison */}
+          <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
+            <h3 className="text-xl font-bold text-slate-100">Phân bố Thể loại</h3>
+            <div className="space-y-3">
+              {(() => {
+                const maxCount = Math.max(
+                  1,
+                  ...stats.genre_distribution.flatMap((g) => [g.actorA_count, g.actorB_count])
+                );
+                return stats.genre_distribution.map((g) => (
+                  <div key={g.genre} className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold text-slate-300">
+                      <span className="text-amber-400">{g.actorA_count} phim</span>
+                      <span>{g.genre}</span>
+                      <span className="text-cyan-400">{g.actorB_count} phim</span>
+                    </div>
+                    <div className="h-2.5 bg-slate-900 rounded-full overflow-hidden flex">
+                      <div
+                        className="bg-amber-500 h-full"
+                        style={{ width: `${Math.min(100, Math.round((g.actorA_count / maxCount) * 100))}%` }}
+                      />
+                      <div className="flex-1" />
+                      <div
+                        className="bg-cyan-500 h-full"
+                        style={{ width: `${Math.min(100, Math.round((g.actorB_count / maxCount) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </section>
         </>
       )}
     </div>

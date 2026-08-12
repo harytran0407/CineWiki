@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { X, Film, Mail, Lock, User, Sparkles } from 'lucide-react';
 import { User as UserType } from '../types';
 
@@ -9,7 +8,6 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess }) => {
-  const { t } = useTranslation();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -73,9 +71,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
             <Film className="w-6 h-6 text-amber-400" />
           </div>
           <h2 className="text-2xl font-bold text-slate-100">
-            {isRegister ? t('auth.register') : t('auth.login')}
+            {isRegister ? 'Đăng ký' : 'Đăng nhập'}
           </h2>
-          <p className="text-xs text-slate-400 mt-1">{t('auth.welcomeBack')}</p>
+          <p className="text-xs text-slate-400 mt-1">Chào mừng trở lại với CineWiki!</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,7 +85,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
 
           {isRegister && (
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">{t('auth.fullName')}</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Họ và tên</label>
               <div className="relative">
                 <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                 <input
@@ -103,7 +101,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">{t('auth.email')}</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
               <input
@@ -118,7 +116,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">{t('auth.password')}</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Mật khẩu</label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
               <input
@@ -137,7 +135,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
             disabled={loading}
             className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg transition transform active:scale-95 disabled:opacity-50"
           >
-            {loading ? '...' : isRegister ? t('auth.register') : t('auth.login')}
+            {loading ? '...' : isRegister ? 'Đăng ký' : 'Đăng nhập'}
           </button>
         </form>
 
@@ -147,7 +145,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onLoginSuccess })
             className="w-full py-2.5 px-4 bg-slate-800/80 hover:bg-slate-700 text-amber-300 font-semibold rounded-xl text-xs flex items-center justify-center space-x-2 border border-amber-500/20 transition"
           >
             <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>{t('auth.demoLogin')}</span>
+            <span>Trải nghiệm Demo ngay</span>
           </button>
 
           <button

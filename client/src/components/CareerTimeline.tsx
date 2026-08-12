@@ -1,5 +1,4 @@
-import React, { useState, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilmographyItem } from '../types';
 import { ImgWithFallback } from './ImgWithFallback';
@@ -11,13 +10,16 @@ interface CareerTimelineProps {
 }
 
 export const CareerTimeline: React.FC<CareerTimelineProps> = ({ filmography, actorName }) => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const timelineRef = useRef<HTMLDivElement | null>(null);
 
   const [colorMode, setColorMode] = useState<'genre' | 'rating'>('rating');
   const [selectedItem, setSelectedItem] = useState<FilmographyItem | null>(null);
   const [spacingMode, setSpacingMode] = useState<'normal' | 'compact'>('normal');
+
+  useEffect(() => {
+    setSelectedItem(null);
+  }, [actorName, filmography]);
 
   if (!filmography || filmography.length === 0) return null;
 
@@ -62,7 +64,7 @@ export const CareerTimeline: React.FC<CareerTimelineProps> = ({ filmography, act
         <div>
           <div className="flex items-center space-x-2">
             <Sparkles className="w-5 h-5 text-amber-400" />
-            <h3 className="text-xl font-bold text-slate-100">{t('actor.careerTimeline')}</h3>
+            <h3 className="text-xl font-bold text-slate-100">Dòng Thời Gian Sự Nghiệp</h3>
           </div>
           <p className="text-xs text-slate-400 mt-1">
             {minYear} — {maxYear} • Hiển thị trọn vẹn {filmography.length} tác phẩm điện ảnh trong sự nghiệp
@@ -108,7 +110,7 @@ export const CareerTimeline: React.FC<CareerTimelineProps> = ({ filmography, act
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {t('actor.colorByRating')}
+              Theo Rating
             </button>
             <button
               onClick={() => setColorMode('genre')}
@@ -118,7 +120,7 @@ export const CareerTimeline: React.FC<CareerTimelineProps> = ({ filmography, act
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {t('actor.colorByGenre')}
+              Theo Thể loại
             </button>
           </div>
         </div>

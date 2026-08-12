@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Actor, Notification, User as UserType } from '../types';
 import { ImgWithFallback } from '../components/ImgWithFallback';
@@ -19,7 +18,6 @@ export const FollowingPage: React.FC<FollowingPageProps> = ({
   onToggleFollow,
   notifications
 }) => {
-  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const [followedActors, setFollowedActors] = useState<Actor[]>([]);
@@ -48,8 +46,8 @@ export const FollowingPage: React.FC<FollowingPageProps> = ({
     return (
       <div className="glass-panel rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4 my-12 border border-pink-500/20">
         <Heart className="w-12 h-12 text-pink-400 mx-auto fill-pink-400/20" />
-        <h2 className="text-xl font-extrabold text-slate-100">{t('idols.loginRequired')}</h2>
-        <p className="text-xs text-slate-400">{t('idols.noFollows')}</p>
+        <h2 className="text-xl font-extrabold text-slate-100">Bạn chưa đăng nhập</h2>
+        <p className="text-xs text-slate-400">Hãy theo dõi diễn viên yêu thích để nhận cập nhật!</p>
         <button
           onClick={() => navigate('/')}
           className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs"
@@ -69,8 +67,8 @@ export const FollowingPage: React.FC<FollowingPageProps> = ({
             <Heart className="w-6 h-6 text-pink-400 fill-pink-400" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-100">{t('idols.title')}</h1>
-            <p className="text-xs text-slate-400 mt-1">{t('idols.followedCount', { count: followedActors.length })}</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-100">❤️ Idol của tôi</h1>
+            <p className="text-xs text-slate-400 mt-1">Theo dõi {followedActors.length} diễn viên</p>
           </div>
         </div>
       </div>
@@ -81,7 +79,7 @@ export const FollowingPage: React.FC<FollowingPageProps> = ({
 
         {followedActors.length === 0 ? (
           <div className="p-8 text-center glass-panel rounded-2xl border border-slate-800 text-xs text-slate-400">
-            {t('idols.noFollows')}
+            Bạn chưa theo dõi diễn viên nào.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -147,7 +145,7 @@ export const FollowingPage: React.FC<FollowingPageProps> = ({
       <section className="space-y-4">
         <div className="flex items-center space-x-2">
           <Sparkles className="w-5 h-5 text-amber-400" />
-          <h2 className="text-xl font-extrabold text-slate-100">{t('idols.feedTitle')}</h2>
+          <h2 className="text-xl font-extrabold text-slate-100">📰 Cập nhật từ Idol</h2>
         </div>
 
         <div className="glass-panel rounded-3xl p-6 border border-slate-800 space-y-4 divide-y divide-slate-800/60">
@@ -167,7 +165,7 @@ export const FollowingPage: React.FC<FollowingPageProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-slate-200 mt-1">
-                  {i18n.language === 'vi' ? notif.content_vi : notif.content}
+                  {notif.content_vi || notif.content}
                 </p>
               </div>
             </div>

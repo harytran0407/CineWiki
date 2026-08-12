@@ -9,11 +9,16 @@ const resources = {
         home: "Trang chủ",
         movies: "Phim ảnh",
         actors: "Diễn viên",
-        compare: "So sánh diễn viên",
+        compare: "So sánh đối đầu",
         network: "Mạng lưới liên kết",
         search: "Lọc nâng cao",
         idols: "Idol của tôi",
-        searchPlaceholder: "Tìm kiếm phim hoặc diễn viên..."
+        searchPlaceholder: "Tìm kiếm phim hoặc diễn viên...",
+        genres: "Thể loại",
+        countries: "Quốc gia",
+        random: "Ngẫu nhiên",
+        login: "Đăng nhập",
+        logout: "Đăng xuất"
       },
       hero: {
         badge: "Nền tảng tra cứu điện ảnh thế hệ mới",
@@ -124,11 +129,16 @@ const resources = {
         home: "Home",
         movies: "Movies",
         actors: "Actors",
-        compare: "Compare Actors",
+        compare: "Compare",
         network: "Actor Network",
         search: "Advanced Filter",
         idols: "My Idols",
-        searchPlaceholder: "Search movies or actors..."
+        searchPlaceholder: "Search movies or actors...",
+        genres: "Genres",
+        countries: "Countries",
+        random: "Random",
+        login: "Log In",
+        logout: "Log Out"
       },
       hero: {
         badge: "Next-Gen Movie & Actor Encyclopedia",

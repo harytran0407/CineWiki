@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { CronService } from '../services/cronService';
-import { MOCK_ACTORS } from '../mockData';
+import { TMDBService } from '../services/tmdbService';
 import { Follow } from '../types';
 
 let userFollows: Follow[] = [
@@ -11,8 +11,18 @@ let userFollows: Follow[] = [
 export const getFollows = async (req: Request, res: Response) => {
   try {
     const userId = (req.query.userId as string) || 'demo-user';
+    const lang = (req.query.lang as string) || 'vi-VN';
     const followedActorIds = userFollows.filter((f) => f.user_id === userId).map((f) => f.actor_id);
-    const followedActors = MOCK_ACTORS.filter((a) => followedActorIds.includes(a.id));
+    const followedActors = await Promise.all(
+      followedActorIds.map(async (id) => {
+        try {
+          return await TMDBService.getActorDetails(id, lang);
+        } catch {
+          return null;
+        }
+      })
+    ).then((res) => res.filter((a) => a !== null));
+
     res.json({ success: true, data: followedActors, followIds: followedActorIds });
   } catch (error) {
     res.status(500).json({ success: false, message: (error as Error).message });
@@ -61,9 +71,9 @@ export const getNotifications = async (req: Request, res: Response) => {
 
 export const markNotificationRead = async (req: Request, res: Response) => {
   try {
-    const { notificationId } = req.body;
+    const { notificationId, userId = 'demo-user' } = req.body;
     if (notificationId === 'all') {
-      CronService.markAllAsRead('demo-user');
+      CronService.markAllAsRead(userId);
     } else {
       CronService.markAsRead(notificationId);
     }
