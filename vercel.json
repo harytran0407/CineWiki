@@ -1,3 +1,4 @@
+```json
 {
   "version": 2,
   "builds": [
@@ -23,7 +24,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "client/index.html"
+      "dest": "client/$1"
     }
   ]
 }
