@@ -409,14 +409,14 @@ export const ComparePage: React.FC = () => {
               <div className="glass-panel-glow rounded-3xl p-6 border border-amber-500/30 space-y-5 text-center relative">
                 <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">Chọn Phim A</span>
                 <div className="relative">
-                  <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     value={searchMovieA}
                     onChange={(e) => setSearchMovieA(e.target.value)}
                     placeholder="Gõ tìm phim A..."
-                    className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-amber-500/30 rounded-xl text-xs text-slate-100 focus:outline-none"
+                    className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 focus:border-amber-400 rounded-lg text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none"
                   />
+                  <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                   {liveMoviesA.length > 0 && (
                     <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-amber-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
                       {liveMoviesA.map((m) => (
@@ -467,14 +467,14 @@ export const ComparePage: React.FC = () => {
               <div className="glass-panel-glow rounded-3xl p-6 border border-cyan-500/30 space-y-5 text-center relative">
                 <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block">Chọn Phim B</span>
                 <div className="relative">
-                  <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     value={searchMovieB}
                     onChange={(e) => setSearchMovieB(e.target.value)}
                     placeholder="Gõ tìm phim B..."
-                    className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-cyan-500/30 rounded-xl text-xs text-slate-100 focus:outline-none"
+                    className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 focus:border-amber-400 rounded-lg text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none"
                   />
+                  <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                   {liveMoviesB.length > 0 && (
                     <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto bg-slate-900 border border-cyan-500/40 rounded-2xl p-2 space-y-1 shadow-2xl text-left">
                       {liveMoviesB.map((m) => (
@@ -719,14 +719,14 @@ export const ComparePage: React.FC = () => {
               </div>
 
               <div className="relative">
-                <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   value={searchA}
                   onChange={(e) => setSearchA(e.target.value)}
-                  placeholder="Gõ tên tìm diễn viên A (TMDB)..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-amber-500/30 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-amber-400"
+                  placeholder="Tìm diễn viên ở đây nè..."
+                  className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 focus:border-amber-400 rounded-lg text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none"
                 />
+                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
 
                 {/* Live TMDB Autocomplete Dropdown A */}
                 {liveResultsA.length > 0 && (
@@ -791,18 +791,17 @@ export const ComparePage: React.FC = () => {
                 <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
                   Chọn Diễn viên B
                 </span>
-                <span className="text-[11px] text-slate-400">Click chọn ảnh để thay đổi</span>
               </div>
 
               <div className="relative">
-                <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   value={searchB}
                   onChange={(e) => setSearchB(e.target.value)}
-                  placeholder="Gõ tên tìm diễn viên B (TMDB)..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-cyan-500/30 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-cyan-400"
+                  placeholder="Tìm diễn viên ở đây nè..."
+                  className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 focus:border-amber-400 rounded-lg text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none"
                 />
+                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
 
                 {/* Live TMDB Autocomplete Dropdown B */}
                 {liveResultsB.length > 0 && (

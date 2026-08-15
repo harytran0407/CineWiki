@@ -26,6 +26,7 @@ export interface Actor {
   original_name?: string;
   profile_path: string;
   birthday: string;
+  deathday?: string;
   place_of_birth?: string;
   nationality?: string;
   height?: string;
@@ -37,6 +38,8 @@ export interface Actor {
   total_box_office?: string;
   highest_grossing_movie?: string;
   landmark_works?: string[];
+  popularity?: number;
+  known_for?: { id: number; title?: string; name?: string }[];
   awards?: Award[];
   filmography: FilmographyItem[];
   upcoming_movies?: {

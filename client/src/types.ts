@@ -26,6 +26,7 @@ export interface Actor {
   original_name?: string;
   profile_path: string;
   birthday: string;
+  deathday?: string;
   place_of_birth?: string;
   nationality?: string;
   height?: string;

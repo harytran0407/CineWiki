@@ -5,8 +5,11 @@ import { AIService } from '../services/aiService';
 export const getPopularActors = async (req: Request, res: Response) => {
   try {
     const lang = (req.query.lang as string) || 'vi-VN';
-    const actors = await TMDBService.getPopularActors(lang);
-    return res.json({ success: true, data: actors });
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const country = req.query.country as string;
+    const category = req.query.category as string;
+    const actors = await TMDBService.getPopularActors(lang, page, country, category);
+    return res.json({ success: true, data: actors, page, total_pages: 20 });
   } catch (error) {
     return res.status(500).json({ success: false, message: (error as Error).message });
   }

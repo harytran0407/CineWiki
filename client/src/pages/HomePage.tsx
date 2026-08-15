@@ -96,6 +96,12 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
   const displayedTrending = trendingMovies.slice(0, 15);
   const displayedUpcoming = upcomingMovies.slice(0, 15);
 
+  const isEn = i18n.language?.startsWith('en');
+
+  useEffect(() => {
+    document.title = t('home.title') || (isEn ? 'CineWiki - Discover World Cinema' : 'CineWiki - Khám Phá Điện Ảnh Thế Giới');
+  }, [i18n.language, t, isEn]);
+
   return (
     <div className="space-y-16 pb-16">
       {/* Hero Banner Section */}
@@ -114,14 +120,17 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
         )}
 
         <div className="relative z-10 p-6 sm:p-12 max-w-3xl space-y-4">
-
-
-          <h1 className="text-3xl sm:text-5xl font-black text-slate-100 leading-tight">
-            CineWiki - Khám Phá Điện Ảnh Thế Giới
+          <h1 className="text-4xl sm:text-6xl font-black text-slate-100 leading-tight space-y-1">
+            <div>
+              Cine<span className="text-amber-400">Wiki</span>
+            </div>
+            <div className="text-2xl sm:text-4xl text-slate-100 font-bold">
+              {isEn ? 'Discover World Cinema' : 'Khám Phá Điện Ảnh Thế Giới'}
+            </div>
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 line-clamp-3">
-            Khám phá kho tàng điện ảnh thế giới với thông tin chi tiết về phim, diễn viên và đạo diễn hàng đầu.
+            {t('home.subtitle') || (isEn ? 'Explore world cinema with comprehensive details on top movies, actors, and directors.' : 'Khám phá kho tàng điện ảnh thế giới với thông tin chi tiết về phim, diễn viên và đạo diễn hàng đầu.')}
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-4">
@@ -131,25 +140,11 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
                 className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-2xl shadow-xl flex items-center space-x-2 transition transform active:scale-95 text-sm cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-slate-950" />
-                <span>Xem Phim Nổi Bật</span>
+                <span>{t('home.watchFeatured') || (isEn ? 'Watch Featured Movie' : 'Xem Phim Nổi Bật')}</span>
               </button>
             )}
 
-            <button
-              onClick={() => navigate('/compare?tab=movie')}
-              className="px-5 py-3 bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 font-semibold rounded-2xl flex items-center space-x-2 text-sm transition cursor-pointer"
-            >
-              <Film className="w-4 h-4 text-cyan-400" />
-              <span>So Sánh Phim</span>
-            </button>
 
-            <button
-              onClick={() => navigate('/compare?tab=actor')}
-              className="px-5 py-3 bg-slate-900/90 hover:bg-slate-800 border border-amber-500/30 text-amber-300 font-semibold rounded-2xl flex items-center space-x-2 text-sm transition cursor-pointer"
-            >
-              <GitCompare className="w-4 h-4 text-amber-400" />
-              <span>So Sánh Diễn Viên</span>
-            </button>
           </div>
         </div>
       </section>
@@ -163,21 +158,29 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
             </div>
             <div>
               <h2 className="text-2xl font-black text-slate-100 flex items-center space-x-2">
-                <span>Phim Đang Thịnh Hành</span>
+                <span>{t('home.trendingMovies') || (isEn ? 'Trending Movies' : 'Phim Đang Thịnh Hành')}</span>
               </h2>
-              <p className="text-xs text-slate-400">Các tác phẩm có lượng xem và quan tâm cao nhất thế giới </p>
+              <p className="text-xs text-slate-400">{t('home.trendingSub') || (isEn ? 'Top trending and most popular movies worldwide' : 'Các tác phẩm có lượng xem và quan tâm cao nhất thế giới')}</p>
             </div>
           </div>
+
+          <button
+            onClick={() => navigate('/search')}
+            className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer shadow-md hover:scale-105"
+          >
+            <span>{t('home.viewAll') || (isEn ? 'View All' : 'Xem thêm')}</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
         {loadingTrending ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-3.5 sm:gap-6">
             {[...Array(15)].map((_, i) => (
               <div key={i} className="h-64 rounded-2xl skeleton-box" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-3.5 sm:gap-6">
             {displayedTrending.map((movie) => (
               <div
                 key={`trend-${movie.id}`}
@@ -204,7 +207,7 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
                     {getMovieTitle(movie, i18n.language)}
                   </h3>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    {movie.release_date ? movie.release_date.split('-')[0] : ''} • {movie.genres?.[0]?.name || 'Điện ảnh'}
+                    {movie.release_date ? movie.release_date.split('-')[0] : ''} • {movie.genres?.[0]?.name || (isEn ? 'Cinema' : 'Điện ảnh')}
                   </p>
                 </div>
               </div>
@@ -220,11 +223,11 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
             className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-400/50 text-slate-300 disabled:opacity-40 transition cursor-pointer text-xs font-bold flex items-center space-x-1.5 shadow-md"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Trang trước</span>
+            <span>{t('home.prevPage') || (isEn ? 'Previous' : 'Trang trước')}</span>
           </button>
 
           <span className="text-xs font-bold px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300">
-            Trang {trendingPage} / {Math.min(20, trendingTotalPages)}
+            {t('home.pageOf', { current: trendingPage, total: Math.min(20, trendingTotalPages) }) || (isEn ? `Page ${trendingPage} / ${Math.min(20, trendingTotalPages)}` : `Trang ${trendingPage} / ${Math.min(20, trendingTotalPages)}`)}
           </span>
 
           <button
@@ -232,7 +235,7 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
             disabled={trendingPage >= trendingTotalPages || loadingTrending}
             className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-400/50 text-slate-300 disabled:opacity-40 transition cursor-pointer text-xs font-bold flex items-center space-x-1.5 shadow-md"
           >
-            <span>Trang sau</span>
+            <span>{t('home.nextPage') || (isEn ? 'Next' : 'Trang sau')}</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -247,21 +250,21 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
             </div>
             <div>
               <h2 className="text-2xl font-black text-slate-100 flex items-center space-x-2">
-                <span>Phim Sắp Khởi Chiếu</span>
+                <span>{t('home.upcomingMovies') || (isEn ? 'Upcoming Releases' : 'Phim Sắp Khởi Chiếu')}</span>
               </h2>
-              <p className="text-xs text-slate-400">Các siêu bom tấn sắp khởi chiếu</p>
+              <p className="text-xs text-slate-400">{t('home.upcomingSub') || (isEn ? 'Upcoming blockbuster movies hitting theaters soon' : 'Các siêu bom tấn sắp khởi chiếu')}</p>
             </div>
           </div>
         </div>
 
         {loadingUpcoming ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-3.5 sm:gap-6">
             {[...Array(15)].map((_, i) => (
               <div key={i} className="h-64 rounded-2xl skeleton-box" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-3.5 sm:gap-6">
             {displayedUpcoming.map((movie) => (
               <div
                 key={`up-${movie.id}`}
@@ -275,7 +278,6 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
                     alt={movie.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
-
                 </div>
 
                 <div className="p-3 flex-1 flex flex-col justify-between">
@@ -283,7 +285,7 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
                     {getMovieTitle(movie, i18n.language)}
                   </h3>
                   <p className="text-[10px] text-cyan-400 font-semibold mt-1 truncate">
-                    Khởi chiếu: {movie.release_date || 'Tương lai'}
+                    {t('home.releasing', { date: movie.release_date || (isEn ? 'Future' : 'Tương lai') }) || (isEn ? `Releasing: ${movie.release_date || 'Future'}` : `Khởi chiếu: ${movie.release_date || 'Tương lai'}`)}
                   </p>
                 </div>
               </div>
@@ -299,11 +301,11 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
             className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-400/50 text-slate-300 disabled:opacity-40 transition cursor-pointer text-xs font-bold flex items-center space-x-1.5 shadow-md"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Trang trước</span>
+            <span>{t('home.prevPage') || (isEn ? 'Previous' : 'Trang trước')}</span>
           </button>
 
           <span className="text-xs font-bold px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300">
-            Trang {upcomingPage} / {Math.min(20, upcomingTotalPages)}
+            {t('home.pageOf', { current: upcomingPage, total: Math.min(20, upcomingTotalPages) }) || (isEn ? `Page ${upcomingPage} / ${Math.min(20, upcomingTotalPages)}` : `Trang ${upcomingPage} / ${Math.min(20, upcomingTotalPages)}`)}
           </span>
 
           <button
@@ -311,7 +313,7 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
             disabled={upcomingPage >= upcomingTotalPages || loadingUpcoming}
             className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-400/50 text-slate-300 disabled:opacity-40 transition cursor-pointer text-xs font-bold flex items-center space-x-1.5 shadow-md"
           >
-            <span>Trang sau</span>
+            <span>{t('home.nextPage') || (isEn ? 'Next' : 'Trang sau')}</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -325,24 +327,24 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
               <User className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-100">Diễn viên Nổi bật</h2>
-              <p className="text-xs text-slate-400">Các diễn viên hàng đầu đang dẫn dắt phòng vé toàn cầu</p>
+              <h2 className="text-2xl font-black text-slate-100">{t('home.featuredActors') || (isEn ? 'Featured Actors' : 'Diễn viên Nổi bật')}</h2>
+              <p className="text-xs text-slate-400">{t('home.actorsSub') || (isEn ? 'Top leading actors driving global box office successes' : 'Các diễn viên hàng đầu đang dẫn dắt phòng vé toàn cầu')}</p>
             </div>
           </div>
         </div>
 
         {loadingActors ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="h-48 rounded-3xl skeleton-box" />
             ))}
           </div>
         ) : popularActors.length === 0 ? (
           <div className="p-8 text-center glass-panel rounded-2xl border border-slate-800 text-xs text-slate-400">
-            Chưa có danh sách diễn viên nổi bật.
+            {isEn ? 'No featured actors list available.' : 'Chưa có danh sách diễn viên nổi bật.'}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
             {popularActors.map((actor) => {
               const isFollowing = userFollowIds.includes(actor.id);
               return (
@@ -368,18 +370,6 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
                     </h3>
                     <p className="text-[11px] text-slate-400 mt-0.5">{actor.known_for_department}</p>
                   </div>
-
-                  <button
-                    onClick={() => onToggleFollow(actor.id)}
-                    aria-label={isFollowing ? 'Đang theo dõi' : 'Theo dõi'}
-                    className={`w-full py-1.5 px-3 rounded-full text-xs font-semibold flex items-center justify-center space-x-1.5 transition cursor-pointer ${isFollowing
-                      ? 'bg-slate-800 text-pink-400 border border-pink-500/30'
-                      : 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:from-amber-400 hover:to-amber-500 font-bold'
-                      }`}
-                  >
-                    <Heart className={`w-3.5 h-3.5 ${isFollowing ? 'fill-pink-400 text-pink-400' : ''}`} />
-                    <span>{isFollowing ? 'Đang theo dõi' : 'Theo dõi'}</span>
-                  </button>
                 </div>
               );
             })}

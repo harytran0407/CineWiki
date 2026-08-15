@@ -5,7 +5,7 @@ import { AuthModal } from './AuthModal';
 import { Movie, Actor, Notification, User } from '../types';
 import { useTranslation } from 'react-i18next';
 import { getMovieTitle } from '../utils/langUtils';
-import { Film, Search, ChevronDown, Shuffle, Heart, Bell, User as UserIcon, LogOut, Globe } from 'lucide-react';
+import { Film, Search, ChevronDown, Shuffle, Heart, Bell, User as UserIcon, LogOut, Globe, Menu, X } from 'lucide-react';
 
 interface HeaderProps {
   notifications: Notification[];
@@ -31,14 +31,14 @@ const getGenresList = (isEn: boolean) => [
 ];
 
 const getCountriesList = (isEn: boolean) => [
-  { label: isEn ? 'USA' : 'Mỹ', code: 'US' },
-  { label: isEn ? 'South Korea' : 'Hàn Quốc', code: 'KR' },
-  { label: isEn ? 'Japan' : 'Nhật Bản', code: 'JP' },
-  { label: isEn ? 'China' : 'Trung Quốc', code: 'CN' },
-  { label: isEn ? 'Vietnam' : 'Việt Nam', code: 'VN' },
   { label: isEn ? 'UK' : 'Anh', code: 'GB' },
+  { label: isEn ? 'South Korea' : 'Hàn Quốc', code: 'KR' },
+  { label: isEn ? 'USA' : 'Mỹ', code: 'US' },
+  { label: isEn ? 'Japan' : 'Nhật Bản', code: 'JP' },
   { label: isEn ? 'France' : 'Pháp', code: 'FR' },
-  { label: isEn ? 'Thailand' : 'Thái Lan', code: 'TH' }
+  { label: isEn ? 'Thailand' : 'Thái Lan', code: 'TH' },
+  { label: isEn ? 'China' : 'Trung Quốc', code: 'CN' },
+  { label: isEn ? 'Vietnam' : 'Việt Nam', code: 'VN' }
 ];
 
 const YEARS_LIST = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2015];
@@ -52,6 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ movies: Movie[]; actors: Actor[] }>({
@@ -66,10 +67,16 @@ export const Header: React.FC<HeaderProps> = ({
   // Dropdowns State
   const [showGenreMenu, setShowGenreMenu] = useState(false);
   const [showCountryMenu, setShowCountryMenu] = useState(false);
+  const [showActorMenu, setShowActorMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showMobileGenres, setShowMobileGenres] = useState(false);
+  const [showMobileCountries, setShowMobileCountries] = useState(false);
+  const [showMobileActors, setShowMobileActors] = useState(false);
 
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const genreMenuRef = useRef<HTMLDivElement | null>(null);
   const countryMenuRef = useRef<HTMLDivElement | null>(null);
+  const actorMenuRef = useRef<HTMLDivElement | null>(null);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -120,6 +127,9 @@ export const Header: React.FC<HeaderProps> = ({
       }
       if (countryMenuRef.current && !countryMenuRef.current.contains(e.target as Node)) {
         setShowCountryMenu(false);
+      }
+      if (actorMenuRef.current && !actorMenuRef.current.contains(e.target as Node)) {
+        setShowActorMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -181,9 +191,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Search Bar with Autocomplete */}
-        <div ref={searchContainerRef} className="relative flex-1 max-w-sm hidden md:block">
+        <div ref={searchContainerRef} className="relative flex-1 max-w-lg hidden md:block">
           <div className="relative">
-            <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
@@ -197,8 +206,9 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               placeholder={t('nav.searchPlaceholder')}
               aria-label={t('nav.searchPlaceholder')}
-              className="w-full pl-10 pr-4 py-2 bg-slate-900/90 border border-slate-800 focus:border-amber-500/50 rounded-2xl text-xs text-slate-100 placeholder-slate-400 focus:outline-none transition shadow-inner"
+              className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 focus:border-amber-500 rounded-lg text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none transition shadow-inner"
             />
+            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
           </div>
 
           {/* Autocomplete Dropdown */}
@@ -255,8 +265,8 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Navigation Actions */}
-        <nav className="flex items-center space-x-1 sm:space-x-1.5">
+        {/* Navigation Actions Desktop */}
+        <nav className="hidden md:flex items-center space-x-1.5">
           {/* ① Thể loại Dropdown */}
           <div ref={genreMenuRef} className="relative">
             <button
@@ -287,7 +297,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* ② Quốc gia Dropdown (Quốc gia & Năm phát hành) */}
+          {/* ② Quốc gia Dropdown */}
           <div ref={countryMenuRef} className="relative">
             <button
               onClick={() => {
@@ -303,7 +313,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="absolute top-full left-0 mt-2 w-64 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl z-50 p-3 space-y-3 animate-fade-in">
                 <div>
                   <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider block mb-1.5">
-                    🌍 Quốc gia
+                    Quốc gia
                   </span>
                   <div className="grid grid-cols-2 gap-1">
                     {getCountriesList(i18n.language?.startsWith('en')).map((c) => (
@@ -323,7 +333,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <div className="border-t border-slate-800 pt-2.5">
                   <span className="text-[10px] font-extrabold text-cyan-400 uppercase tracking-wider block mb-1.5">
-                    📅 Năm phát hành
+                    Năm phát hành
                   </span>
                   <div className="grid grid-cols-3 gap-1">
                     {YEARS_LIST.map((y) => (
@@ -344,54 +354,63 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* ③ Diễn viên */}
-          <button
-            onClick={() => navigate('/actors')}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
-              isActive('/actors')
-                ? 'bg-pink-500/10 text-pink-400 border border-pink-500/30 font-bold'
-                : 'text-slate-200 hover:text-pink-400 hover:bg-slate-900/80'
-            }`}
-          >
-            <span>{t('nav.actors')}</span>
-          </button>
+          {/* ③ Diễn viên Dropdown */}
+          <div ref={actorMenuRef} className="relative">
+            <button
+              onClick={() => {
+                setShowActorMenu(!showActorMenu);
+                setShowGenreMenu(false);
+                setShowCountryMenu(false);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1 transition cursor-pointer ${isActive('/actors')
+                ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold'
+                : 'text-slate-200 hover:text-amber-400 hover:bg-slate-900/80'
+                }`}
+            >
+              <span>{t('nav.actors')}</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition transform ${showActorMenu ? 'rotate-180 text-amber-400' : ''}`} />
+            </button>
+            {showActorMenu && (
+              <div className="absolute top-full left-0 mt-2 w-48 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl z-50 p-2 space-y-1 animate-fade-in">
+                <button
+                  onClick={() => {
+                    setShowActorMenu(false);
+                    navigate('/actors?category=all');
+                  }}
+                  className="w-full text-[11px] text-left px-3 py-2 rounded-xl text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition font-medium cursor-pointer"
+                >
+                  {isEn ? 'Most Popular' : 'Thịnh hành nhất'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowActorMenu(false);
+                    navigate('/actors?category=oscars');
+                  }}
+                  className="w-full text-[11px] text-left px-3 py-2 rounded-xl text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition font-medium cursor-pointer"
+                >
+                  {isEn ? 'Most Oscar Winners' : 'Nhiều Oscar nhất'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowActorMenu(false);
+                    navigate('/actors?category=boxoffice');
+                  }}
+                  className="w-full text-[11px] text-left px-3 py-2 rounded-xl text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition font-medium cursor-pointer"
+                >
+                  {isEn ? 'Top Box Office Stars' : 'Doanh thu cao nhất'}
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* ④ Ngẫu Nhiên */}
           <button
             onClick={handleRandomMovie}
-            className="px-3 py-2 rounded-xl text-xs font-bold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/30 transition cursor-pointer flex items-center space-x-1"
+            className="px-3.5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 transition cursor-pointer flex items-center space-x-1.5 shadow-md shadow-amber-500/20 active:scale-95"
             title="Đổi gió xem phim ngẫu nhiên"
           >
-            <Shuffle className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">{t('nav.random')}</span>
-          </button>
-
-          {/* Idol Link */}
-          <button
-            onClick={() => navigate('/following')}
-            aria-label="Idol của tôi"
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition ${
-              isActive('/following')
-                ? 'bg-pink-500/10 text-pink-400 border border-pink-500/30'
-                : 'text-slate-300 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <Heart className="w-3.5 h-3.5 text-pink-400" />
-            <span className="hidden lg:inline">{t('nav.idols')}</span>
-          </button>
-
-          {/* Notification Bell */}
-          <button
-            onClick={() => setShowNotifDrawer(true)}
-            aria-label="Thông báo"
-            className="relative p-2 text-slate-400 hover:text-amber-400 rounded-xl hover:bg-slate-900 border border-transparent hover:border-slate-800 transition"
-          >
-            <Bell className="w-4 h-4" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center shadow-lg animate-pulse">
-                {unreadCount}
-              </span>
-            )}
+            <Shuffle className="w-3.5 h-3.5 text-slate-950" />
+            <span>{t('nav.random')}</span>
           </button>
 
           {/* Language Switcher Toggle */}
@@ -407,32 +426,174 @@ export const Header: React.FC<HeaderProps> = ({
             <Globe className="w-3.5 h-3.5 text-amber-400" />
             <span className="uppercase text-[11px] font-black">{i18n.language?.startsWith('en') ? 'EN' : 'VI'}</span>
           </button>
-
-          {/* Auth Button */}
-          {user ? (
-            <div className="flex items-center space-x-2 pl-2">
-              <span className="text-xs font-semibold text-slate-200 hidden sm:inline">{user.name}</span>
-              <button
-                onClick={() => setUser(null)}
-                aria-label="Đăng xuất"
-                className="p-2 text-slate-400 hover:text-rose-400 rounded-xl transition"
-                title="Đăng xuất"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowAuthModal(true)}
-              aria-label="Đăng nhập"
-              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs hover:from-amber-400 transition shadow-lg flex items-center space-x-1.5"
-            >
-              <UserIcon className="w-3.5 h-3.5 fill-slate-950" />
-              <span>Đăng nhập</span>
-            </button>
-          )}
         </nav>
+
+        {/* Mobile Hamburger Button */}
+        <button
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+          aria-label="Toggle Mobile Menu"
+          className="md:hidden p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 hover:text-amber-400 transition cursor-pointer"
+        >
+          {showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
       </div>
+
+      {/* Mobile Drawer Navigation Menu */}
+      {showMobileMenu && (
+        <div className="md:hidden bg-slate-950/98 border-b border-slate-800 p-4 space-y-4 shadow-2xl animate-fade-in">
+          {/* Mobile Search Bar */}
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  setShowMobileMenu(false);
+                  navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                }
+              }}
+              placeholder={t('nav.searchPlaceholder')}
+              className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 focus:border-amber-500 rounded-lg text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none"
+            />
+            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 pt-2 border-t border-slate-800/80">
+            <button
+              onClick={() => {
+                setShowMobileMenu(false);
+                handleRandomMovie();
+              }}
+              className="p-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black flex items-center justify-center space-x-2 cursor-pointer shadow-md shadow-amber-500/20 active:scale-95"
+            >
+              <Shuffle className="w-4 h-4 text-slate-950" />
+              <span>{t('nav.random')}</span>
+            </button>
+          </div>
+
+          {/* Mobile Genres Accordion */}
+          <div className="space-y-1 pt-2 border-t border-slate-800/80">
+            <button
+              onClick={() => setShowMobileGenres(!showMobileGenres)}
+              className="w-full flex items-center justify-between py-2 text-sm font-bold text-amber-400 cursor-pointer transition"
+            >
+              <div className="flex items-center space-x-2.5">
+                <Film className="w-5 h-5 text-amber-400" />
+                <span>{t('nav.genres')}</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition transform ${showMobileGenres ? 'rotate-180 text-amber-400' : ''}`} />
+            </button>
+            {showMobileGenres && (
+              <div className="flex flex-col space-y-1 pl-7 animate-fade-in py-1">
+                {getGenresList(i18n.language?.startsWith('en')).map((g) => (
+                  <button
+                    key={g.value}
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      navigate(`/search?genre=${g.value}`);
+                    }}
+                    className="text-xs text-slate-200 hover:text-amber-400 font-medium text-left py-2 px-2.5 hover:bg-slate-900/60 rounded-xl transition cursor-pointer"
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Countries Accordion */}
+          <div className="space-y-1 pt-2 border-t border-slate-800/80">
+            <button
+              onClick={() => setShowMobileCountries(!showMobileCountries)}
+              className="w-full flex items-center justify-between py-2 text-sm font-bold text-amber-400 cursor-pointer transition"
+            >
+              <div className="flex items-center space-x-2.5">
+                <Globe className="w-5 h-5 text-amber-400" />
+                <span>{t('nav.countries')}</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition transform ${showMobileCountries ? 'rotate-180 text-amber-400' : ''}`} />
+            </button>
+            {showMobileCountries && (
+              <div className="flex flex-col space-y-1 pl-7 animate-fade-in py-1">
+                {getCountriesList(i18n.language?.startsWith('en')).map((c) => (
+                  <button
+                    key={c.code}
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      navigate(`/search?country=${c.code}`);
+                    }}
+                    className="text-xs text-slate-200 hover:text-amber-400 font-medium text-left py-2 px-2.5 hover:bg-slate-900/60 rounded-xl transition cursor-pointer"
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Actors Accordion */}
+          <div className="space-y-1 pt-2 border-t border-slate-800/80">
+            <button
+              onClick={() => setShowMobileActors(!showMobileActors)}
+              className="w-full flex items-center justify-between py-2 text-sm font-bold text-amber-400 cursor-pointer transition"
+            >
+              <div className="flex items-center space-x-2.5">
+                <UserIcon className="w-5 h-5 text-amber-400" />
+                <span>{t('nav.actors')}</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition transform ${showMobileActors ? 'rotate-180 text-amber-400' : ''}`} />
+            </button>
+            {showMobileActors && (
+              <div className="flex flex-col space-y-1 pl-7 animate-fade-in py-1">
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    navigate('/actors?category=all');
+                  }}
+                  className="text-xs text-slate-200 hover:text-amber-400 font-medium text-left py-2 px-2.5 hover:bg-slate-900/60 rounded-xl transition cursor-pointer"
+                >
+                  {isEn ? 'Most Popular' : 'Thịnh hành nhất'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    navigate('/actors?category=oscars');
+                  }}
+                  className="text-xs text-slate-200 hover:text-amber-400 font-medium text-left py-2 px-2.5 hover:bg-slate-900/60 rounded-xl transition cursor-pointer"
+                >
+                  {isEn ? 'Most Oscar Winners' : 'Nhiều Oscar nhất'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    navigate('/actors?category=boxoffice');
+                  }}
+                  className="text-xs text-slate-200 hover:text-amber-400 font-medium text-left py-2 px-2.5 hover:bg-slate-900/60 rounded-xl transition cursor-pointer"
+                >
+                  {isEn ? 'Top Box Office Stars' : 'Doanh thu cao nhất'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Language Switcher Button */}
+          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <span className="text-xs text-slate-400 font-medium">Ngôn ngữ / Language:</span>
+            <button
+              onClick={() => {
+                const currentLang = i18n.language || 'vi';
+                const nextLang = currentLang.startsWith('en') ? 'vi' : 'en';
+                i18n.changeLanguage(nextLang);
+              }}
+              className="px-4 py-2 rounded-xl bg-slate-900 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center space-x-1.5 cursor-pointer"
+            >
+              <Globe className="w-4 h-4 text-amber-400" />
+              <span className="uppercase">{i18n.language?.startsWith('en') ? 'English' : 'Tiếng Việt'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Notification Drawer */}
       {showNotifDrawer && (

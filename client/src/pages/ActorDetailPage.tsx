@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Actor } from '../types';
 import { CareerTimeline } from '../components/CareerTimeline';
@@ -250,11 +251,11 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
             <div>
               <h1 className="text-3xl sm:text-4xl font-black text-slate-100">{actor.name}</h1>
               <p className="text-xs text-amber-400 font-semibold mt-1">
-                {actor.nationality || 'Quốc tế'} &bull; {actor.known_for_department}
+                {actor.nationality ? `${actor.nationality} • ` : ''}{actor.known_for_department}
               </p>
             </div>
 
-            {/* Action Buttons: Follow + Compare */}
+            {/* Action Buttons: Compare */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
               <button
                 onClick={() => setShowCompareModal(true)}
@@ -263,181 +264,94 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                 <GitCompare className="w-4 h-4 text-amber-400" />
                 <span>So sánh diễn viên này</span>
               </button>
-
-              <button
-                onClick={() => onToggleFollow(actor.id)}
-                className={`py-2.5 px-6 rounded-2xl text-xs font-bold flex items-center space-x-2 shadow-lg transition transform active:scale-95 ${isFollowing
-                  ? 'bg-slate-800 text-pink-400 border border-pink-500/30'
-                  : 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:from-amber-400'
-                  }`}
-              >
-                <Heart className={`w-4 h-4 ${isFollowing ? 'fill-pink-400 text-pink-400' : ''}`} />
-                <span>{isFollowing ? 'Bỏ theo dõi' : 'Theo dõi'}</span>
-              </button>
             </div>
           </div>
 
-          {/* Key Quick Stats Pills */}
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-slate-300 pt-1">
+          {/* Quick Stats List - Clean List format without individual item backgrounds */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-8 text-xs text-slate-300 pt-3 border-t border-slate-800/80 mt-2">
             {actor.birthday && (
-              <div className="flex items-center space-x-1.5 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                <span>Sinh ngày: {actor.birthday}</span>
+              <div className="flex items-center space-x-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.birthYear') || 'Năm sinh'}:</span>
+                <span className="font-semibold text-slate-100 truncate">{actor.birthday}</span>
               </div>
             )}
 
-            {daysToBday !== null && (
-              <div className="flex items-center space-x-1.5 bg-pink-500/10 text-pink-300 px-3 py-1.5 rounded-xl border border-pink-500/30 font-semibold">
-                <Cake className="w-3.5 h-3.5 text-pink-400" />
-                <span>🎂 Còn {daysToBday} ngày tới sinh nhật</span>
+            {actor.deathday && (
+              <div className="flex items-center space-x-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 flex-shrink-0" />
+                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.deathday') || 'Ngày mất'}:</span>
+                <span className="font-semibold text-rose-300 truncate">
+                  {actor.deathday} {(() => {
+                    const dY = parseInt(actor.deathday.split('-')[0], 10);
+                    const bY = actor.birthday ? parseInt(actor.birthday.split('-')[0], 10) : null;
+                    return bY ? `(${t('actor.deceasedAge', { age: dY - bY }) || `hưởng thọ ${dY - bY} tuổi`})` : '';
+                  })()}
+                </span>
+              </div>
+            )}
+
+            {actor.nationality && (
+              <div className="flex items-center space-x-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.nationality') || 'Quốc gia'}:</span>
+                <span className="font-semibold text-slate-100 truncate">{actor.nationality}</span>
               </div>
             )}
 
             {actor.height && (
-              <div className="flex items-center space-x-1.5 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
-                <Ruler className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Chiều cao: {actor.height}</span>
+              <div className="flex items-center space-x-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.height') || 'Chiều cao'}:</span>
+                <span className="font-semibold text-slate-100 truncate">{actor.height}</span>
+              </div>
+            )}
+
+            {actor.filmography && actor.filmography.length > 0 && (
+              <div className="flex items-center space-x-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.totalMovies') || 'Số bộ phim'}:</span>
+                <span className="font-semibold text-slate-100 truncate">{actor.filmography.length} {t('actor.worksCount') || 'tác phẩm'}</span>
               </div>
             )}
 
             {actor.debut_year && (
-              <div className="flex items-center space-x-1.5 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
-                <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Hoạt động: từ năm {actor.debut_year}</span>
+              <div className="flex items-center space-x-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.activeYears') || 'Thời gian hoạt động'}:</span>
+                <span className="font-semibold text-slate-100 truncate">
+                  {(() => {
+                    const dY = actor.deathday ? parseInt(actor.deathday.split('-')[0], 10) : null;
+                    const endY = dY || new Date().getFullYear();
+                    const yearsActive = Math.max(1, endY - actor.debut_year + 1);
+                    return dY
+                      ? (t('actor.activeSpanDeceased', { from: actor.debut_year, to: dY, years: yearsActive }) || `Từ ${actor.debut_year} đến ${dY} (${yearsActive} năm)`)
+                      : (t('actor.activeSpanAlive', { from: actor.debut_year, years: yearsActive }) || `Từ ${actor.debut_year} đến nay (${yearsActive} năm)`);
+                  })()}
+                </span>
               </div>
             )}
 
             {actor.total_box_office && (
-              <div className="flex items-center space-x-1.5 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/30 text-amber-300 font-bold">
-                <DollarSign className="w-3.5 h-3.5 text-amber-400" />
-                <span>Tổng doanh thu: {actor.total_box_office}</span>
+              <div className="flex items-center space-x-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.totalBoxOffice') || 'Doanh thu đạt được'}:</span>
+                <span className="font-bold text-amber-300 truncate">{actor.total_box_office}</span>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Acting Style & Career Overview */}
-      {actor.acting_style && (
-        <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-3">
-          <div className="flex items-center space-x-2">
-            <Flame className="w-5 h-5 text-amber-400" />
-            <h2 className="text-xl font-extrabold text-slate-100">Phong cách Diễn xuất & Thể loại Sở trường</h2>
-          </div>
-          <p className="text-sm text-slate-300 leading-relaxed font-normal">
-            {actor.acting_style}
-          </p>
-        </section>
-      )}
-
-      {/* Detailed Biography with Natural Language Switcher */}
+      {/* Detailed Biography */}
       <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold text-slate-100">Tiểu sử và cuộc đời</h2>
-
-          <button
-            onClick={handleAITranslateBio}
-            disabled={isTranslating}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-semibold text-amber-300 transition"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{isTranslating ? 'Đang dịch...' : '✨ AI dịch tiếng Việt'}</span>
-          </button>
+          <h2 className="text-xl font-extrabold text-slate-100">{t('actor.biography') || 'Tiểu sử và cuộc đời'}</h2>
         </div>
 
-        <p className="text-sm text-slate-300 leading-relaxed font-normal">
-          {aiInsight?.biography_vi || translatedBio || actor.biography_vi || actor.biography}
+        <p className="text-sm text-slate-300 leading-relaxed font-normal whitespace-pre-line">
+          {translatedBio || actor.biography_vi || actor.biography}
         </p>
-      </section>
-
-      {/* AI DEEP INSIGHT SECTION */}
-      <section className="glass-panel-glow rounded-3xl p-6 sm:p-8 border border-amber-500/30 space-y-6 relative overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-slate-100 flex items-center space-x-2">
-                <span>Phân Tích Chuyên Sâu</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 font-bold border border-amber-400/30">CineWiki AI</span>
-              </h2>
-              <p className="text-xs text-slate-400">Tự động tổng hợp di sản nghệ thuật, tâm lý vai diễn & câu chuyện bên lề</p>
-            </div>
-          </div>
-
-          <button
-            onClick={fetchAIInsight}
-            disabled={loadingInsight}
-            className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-bold rounded-2xl text-xs flex items-center space-x-2 shadow-lg transition transform active:scale-95 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 fill-slate-950" />
-            <span>{loadingInsight ? 'Đang phân tích AI...' : aiInsight ? 'Cập nhật phân tích AI' : '✨ Tạo phân tích AI chuyên sâu'}</span>
-          </button>
-        </div>
-
-        {loadingInsight ? (
-          <div className="space-y-4 py-6 animate-pulse">
-            <div className="h-4 bg-amber-500/20 rounded-full w-3/4" />
-            <div className="h-4 bg-slate-800 rounded-full w-full" />
-            <div className="h-4 bg-slate-800 rounded-full w-5/6" />
-          </div>
-        ) : aiInsight ? (
-          <div className="space-y-6 text-xs sm:text-sm text-slate-300">
-            {/* AI Summary */}
-            <div className="p-4 rounded-2xl bg-slate-900/90 border border-amber-500/20 space-y-2">
-              <h4 className="font-bold text-amber-400 text-xs flex items-center space-x-1.5">
-                <span>📝 Tóm tắt Di sản Điện ảnh</span>
-              </h4>
-              <p className="leading-relaxed font-medium text-slate-200">{aiInsight.summary_vi}</p>
-            </div>
-
-            {/* Acting Style */}
-            <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
-              <h4 className="font-bold text-cyan-400 text-xs flex items-center space-x-1.5">
-                <span> Phân tích Phong cách Diễn xuất & Tâm lý Nhập vai</span>
-              </h4>
-              <p className="leading-relaxed text-slate-300">{aiInsight.acting_style_analysis}</p>
-            </div>
-
-            {/* Milestones & Trivia Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Milestones */}
-              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
-                <h4 className="font-bold text-emerald-400 text-xs flex items-center space-x-1.5">
-                  <span> Cột mốc Lịch sử Sự nghiệp</span>
-                </h4>
-                <ul className="space-y-2">
-                  {aiInsight.milestones.map((m, idx) => (
-                    <li key={idx} className="flex items-start space-x-2 text-xs">
-                      <span className="text-emerald-400 font-bold">•</span>
-                      <span>{m}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Trivia */}
-              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
-                <h4 className="font-bold text-pink-400 text-xs flex items-center space-x-1.5">
-                  <span>💡 Chuyện Bên Lề Độc Đáo</span>
-                </h4>
-                <ul className="space-y-2">
-                  {aiInsight.trivia.map((t, idx) => (
-                    <li key={idx} className="flex items-start space-x-2 text-xs">
-                      <span className="text-pink-400 font-bold">•</span>
-                      <span>{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="p-6 text-center text-xs text-slate-400 space-y-2 bg-slate-900/40 rounded-2xl border border-slate-800/60">
-            <p>Nhấn vào nút <strong>"✨ Tạo phân tích AI chuyên sâu"</strong> ở trên để AI tạo ngay bản tổng hợp điện ảnh chi tiết về diễn viên này!</p>
-          </div>
-        )}
       </section>
 
       {/* CAREER TIMELINE FEATURE */}
@@ -448,15 +362,19 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
         <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
           <div className="flex items-center space-x-2">
             <Film className="w-5 h-5 text-amber-400" />
-            <h2 className="text-xl font-extrabold text-slate-100">Tác phẩm Nổi bật & Cột mốc Sự nghiệp</h2>
+            <h2 className="text-xl font-extrabold text-slate-100">{t('actor.landmarkWorks') || 'Tác phẩm Nổi bật & Cột mốc Sự nghiệp'}</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {actor.landmark_works.map((work, idx) => {
               const cleanWorkTitle = work.replace(/\s*\(\d{4}\)\s*/, '').trim().toLowerCase();
               const matchedFilm = actor.filmography?.find((f) => {
-                const cleanFilmTitle = f.title.toLowerCase();
-                return cleanFilmTitle.includes(cleanWorkTitle) || cleanWorkTitle.includes(cleanFilmTitle);
-              });
+                const cleanFilmTitle = (f.title || '').toLowerCase();
+                const cleanOrigTitle = (f.original_title || '').toLowerCase();
+                return (
+                  (cleanFilmTitle && (cleanFilmTitle.includes(cleanWorkTitle) || cleanWorkTitle.includes(cleanFilmTitle))) ||
+                  (cleanOrigTitle && (cleanOrigTitle.includes(cleanWorkTitle) || cleanWorkTitle.includes(cleanOrigTitle)))
+                );
+              }) || actor.filmography?.[idx];
 
               return (
                 <div
@@ -476,7 +394,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-1.5 mb-1">
                       <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center text-[10px]">
-                        {idx + 1}
+                        #{idx + 1}
                       </span>
                       {matchedFilm?.vote_average && (
                         <span className="text-[10px] font-bold text-amber-400">
@@ -523,142 +441,99 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
         </section>
       )}
 
-      {/* CELLPHONES / FPT SHOP STYLE COMPARE SELECTION MODAL */}
-      {showCompareModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-panel w-full max-w-2xl rounded-3xl border border-amber-500/30 p-6 sm:p-8 space-y-6 relative shadow-2xl animate-fade-in">
+      {/* Compare Actor Selection Modal (Identical Layout to Movie Compare Modal) */}
+      {showCompareModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="relative w-full max-w-xl bg-slate-950 rounded-3xl border border-amber-500/40 p-6 shadow-2xl space-y-5 overflow-hidden">
             <button
               onClick={() => setShowCompareModal(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-100 text-sm font-bold w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center transition"
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-900 hover:bg-slate-800 transition cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center space-x-3 border-b border-slate-800 pb-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
                 <GitCompare className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h3 className="text-xl font-extrabold text-slate-100">So sánh Diễn viên Đa chiều</h3>
-                <p className="text-xs text-slate-400">Chọn đối thủ điện ảnh để so sánh toàn diện sự nghiệp, giải thưởng & doanh thu</p>
+                <h3 className="text-lg font-black text-slate-100">So Sánh Diễn Viên Với {actor.name}</h3>
+                <p className="text-xs text-slate-400">Chọn diễn viên để đối sánh sự nghiệp, giải thưởng và doanh thu</p>
               </div>
             </div>
 
-            {/* Duel Banner: Actor A vs Selected Actor B */}
-            <div className="grid grid-cols-2 gap-4 items-center bg-slate-900/90 p-4 rounded-2xl border border-slate-800 relative">
-              <div className="flex flex-col items-center text-center space-y-2">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-amber-400/60 shadow-md bg-slate-800">
-                  <ImgWithFallback src={actor.profile_path} type="profile" alt={actor.name} className="w-full h-full object-cover" />
-                </div>
-                <h4 className="text-xs font-bold text-slate-100 line-clamp-1">{actor.name}</h4>
-                <span className="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/30 font-semibold">
-                  Diễn viên A (Hiện tại)
-                </span>
-              </div>
-
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-slate-900 shadow-xl">
-                VS
-              </div>
-
-              <div className="flex flex-col items-center text-center space-y-2">
-                {selectedB ? (
-                  <>
-                    <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-cyan-400/60 shadow-md bg-slate-800">
-                      <ImgWithFallback src={selectedB.profile_path} type="profile" alt={selectedB.name} className="w-full h-full object-cover" />
-                    </div>
-                    <h4 className="text-xs font-bold text-slate-100 line-clamp-1">{selectedB.name}</h4>
-                    <button
-                      onClick={() => setSelectedB(null)}
-                      className="text-[10px] text-pink-400 hover:underline font-semibold"
-                    >
-                      Đổi đối thủ khác
-                    </button>
-                  </>
-                ) : (
-                  <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-700 flex flex-col items-center justify-center text-slate-500 text-[11px] p-2 text-center bg-slate-950/50">
-                    <span>Chưa chọn</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Search Input for Actor B */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-300 block">Tìm đối thủ bất kỳ (không giới hạn):</label>
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <input
-                  type="text"
-                  value={compareSearchQuery}
-                  onChange={(e) => setCompareSearchQuery(e.target.value)}
-                  placeholder="Gõ tên tìm diễn viên bất kỳ (Leonardo DiCaprio, Brad Pitt, Zendaya...)..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-amber-400/50"
-                />
-              </div>
-
-              {/* Live Search Results from TMDB */}
+            {/* Search Bar Input */}
+            <div className="relative">
+              <input
+                type="text"
+                value={compareSearchQuery}
+                onChange={(e) => setCompareSearchQuery(e.target.value)}
+                placeholder="Nhập tên diễn viên bạn muốn so sánh..."
+                className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 focus:border-amber-400 rounded-lg text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none"
+              />
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
               {isSearchingActors && (
-                <p className="text-xs text-amber-400 animate-pulse">🔍 Đang tìm kiếm diễn viên trên TMDB...</p>
+                <span className="absolute right-3.5 top-3 text-[10px] text-amber-400 font-bold animate-pulse">Đang tìm...</span>
               )}
-              {compareSearchResults.length > 0 && (
-                <div className="max-h-40 overflow-y-auto space-y-1 bg-slate-900 p-2 rounded-2xl border border-slate-800 shadow-inner">
-                  {compareSearchResults.map((act) => (
-                    <div
-                      key={`srch-${act.id}`}
-                      onClick={() => {
-                        setSelectedB(act);
-                        setCompareSearchQuery('');
-                        setCompareSearchResults([]);
-                      }}
-                      className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer text-xs transition"
-                    >
-                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-slate-800 border border-slate-700">
-                        <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-full h-full object-cover" />
-                      </div>
-                      <span className="font-bold text-slate-200">{act.name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Popular Recommendations */}
-              <div className="space-y-2 pt-1">
-                <span className="text-[11px] font-semibold text-slate-400 block">Gợi ý đối thủ nổi bật:</span>
-                <div className="flex flex-wrap gap-2">
-                  {popularCandidates.slice(0, 6).map((pop) => (
-                    <button
-                      key={`popB-${pop.id}`}
-                      onClick={() => setSelectedB(pop)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${selectedB?.id === pop.id
-                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400'
-                        : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-amber-500/40'
-                        }`}
-                    >
-                      {pop.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
-            {/* CTA Button */}
-            <button
-              disabled={!selectedB}
-              onClick={() => {
-                if (selectedB) {
-                  navigate(`/compare?a=${actor.id}&b=${selectedB.id}`);
-                }
-              }}
-              className={`w-full py-3.5 rounded-2xl text-xs font-bold transition flex items-center justify-center space-x-2 ${selectedB
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-xl cursor-pointer transform active:scale-98'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                }`}
-            >
-              <GitCompare className="w-4 h-4" />
-              <span>Bắt đầu so sánh hai diễn viên ngay</span>
-            </button>
+            {/* Search Results / Popular List container */}
+            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+              {compareSearchQuery.trim() ? (
+                <div>
+                  <span className="text-[10px] font-bold text-amber-400 block mb-2 uppercase tracking-wider">Kết quả tìm kiếm diễn viên</span>
+                  {compareSearchResults.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-4 text-center">Không tìm thấy diễn viên phù hợp</p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                      {compareSearchResults.map((act) => (
+                        <div
+                          key={act.id}
+                          onClick={() => {
+                            setShowCompareModal(false);
+                            navigate(`/compare?a=${actor.id}&b=${act.id}`);
+                          }}
+                          className="flex items-center space-x-3 p-2.5 rounded-2xl bg-slate-900/80 hover:bg-amber-500/10 border border-slate-800 hover:border-amber-500/30 cursor-pointer transition"
+                        >
+                          <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-xs font-bold text-slate-100 truncate">{act.name}</h4>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{act.known_for_department || 'Diễn viên'}</p>
+                          </div>
+                          <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">So sánh</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <span className="text-[10px] font-bold text-amber-400 block mb-2 uppercase tracking-wider">Diễn viên nổi tiếng gợi ý</span>
+                  <div className="grid grid-cols-1 gap-2">
+                    {popularCandidates.slice(0, 6).map((act) => (
+                      <div
+                        key={act.id}
+                        onClick={() => {
+                          setShowCompareModal(false);
+                          navigate(`/compare?a=${actor.id}&b=${act.id}`);
+                        }}
+                        className="flex items-center space-x-3 p-2.5 rounded-2xl bg-slate-900/80 hover:bg-amber-500/10 border border-slate-800 hover:border-amber-500/30 cursor-pointer transition"
+                      >
+                        <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs font-bold text-slate-100 truncate">{act.name}</h4>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{act.known_for_department || 'Diễn viên'}</p>
+                        </div>
+                        <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">So sánh</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

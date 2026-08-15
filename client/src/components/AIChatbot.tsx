@@ -67,45 +67,72 @@ export const AIChatbot: React.FC = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  // Detect movie context from URL
-  const getMovieContext = (): { id: string; title?: string } | null => {
-    const match = location.pathname.match(/^\/movie\/(\d+)/);
-    if (!match) return null;
-    return { id: match[1] };
+  // Detect movie or actor context from URL
+  const getContextFromUrl = (): { type: 'movie' | 'actor'; id: string } | null => {
+    const movieMatch = location.pathname.match(/^\/movie\/(\d+)/);
+    if (movieMatch) return { type: 'movie', id: movieMatch[1] };
+
+    const actorMatch = location.pathname.match(/^\/actor\/(\d+)/);
+    if (actorMatch) return { type: 'actor', id: actorMatch[1] };
+
+    return null;
   };
 
-  const [movieCtx, setMovieCtx] = useState<{ id: string; title?: string } | null>(null);
+  const [pageCtx, setPageCtx] = useState<{ type: 'movie' | 'actor'; id: string; name?: string } | null>(null);
 
   useEffect(() => {
-    const ctx = getMovieContext();
-    if (ctx) {
-      const langParam = i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN';
+    const ctx = getContextFromUrl();
+    if (!ctx) {
+      setPageCtx(null);
+      return;
+    }
+
+    const langParam = i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN';
+    if (ctx.type === 'movie') {
       fetch(`/api/movies/${ctx.id}?lang=${langParam}`)
         .then((r) => r.json())
         .then((data) => {
           if (data.success && data.data?.title) {
-            setMovieCtx({ id: ctx.id, title: data.data.title });
+            setPageCtx({ type: 'movie', id: ctx.id, name: data.data.title });
           } else {
-            setMovieCtx(ctx);
+            setPageCtx(ctx);
           }
         })
-        .catch(() => setMovieCtx(ctx));
-    } else {
-      setMovieCtx(null);
+        .catch(() => setPageCtx(ctx));
+    } else if (ctx.type === 'actor') {
+      fetch(`/api/actors/${ctx.id}?lang=${langParam}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.data?.name) {
+            setPageCtx({ type: 'actor', id: ctx.id, name: data.data.name });
+          } else {
+            setPageCtx(ctx);
+          }
+        })
+        .catch(() => setPageCtx(ctx));
     }
   }, [location.pathname, i18n.language]);
 
-  const welcomeText = movieCtx?.title
-    ? `Xin chào! Tôi là CineBot AI. Tôi thấy bạn đang xem **${movieCtx.title}** — hỏi tôi bất cứ điều gì về bộ phim này nhé!`
+  const welcomeText = pageCtx?.name
+    ? pageCtx.type === 'movie'
+      ? `Xin chào! Tôi là CineBot AI. Tôi thấy bạn đang xem **${pageCtx.name}** — hỏi tôi bất cứ điều gì về bộ phim này nhé!`
+      : `Xin chào! Tôi là CineBot AI. Tôi thấy bạn đang xem trang của diễn viên **${pageCtx.name}** — hỏi tôi bất cứ điều gì về sự nghiệp và tác phẩm của diễn viên này nhé!`
     : 'Xin chào! Tôi là CineBot AI. Bạn cần tư vấn về bộ phim, diễn viên, đạo diễn hay gợi ý tác phẩm điện ảnh nào hôm nay?';
 
-  const initialFollowUps = movieCtx?.title
-    ? [
-      `Tóm tắt nội dung phim ${movieCtx.title}?`,
-      `Diễn viên nào nổi bật nhất trong ${movieCtx.title}?`,
-      `${movieCtx.title} đã giành những giải thưởng nào?`,
-      `Đánh giá phim ${movieCtx.title} có hay không?`
-    ]
+  const initialFollowUps = pageCtx?.name
+    ? pageCtx.type === 'movie'
+      ? [
+        `Tóm tắt nội dung phim ${pageCtx.name}?`,
+        `Diễn viên nào nổi bật nhất trong ${pageCtx.name}?`,
+        `${pageCtx.name} đã giành những giải thưởng nào?`,
+        `Đánh giá phim ${pageCtx.name} có hay không?`
+      ]
+      : [
+        `Tiểu sử và sự nghiệp của ${pageCtx.name}?`,
+        `Các phim hay nhất của ${pageCtx.name}?`,
+        `${pageCtx.name} đã đoạt những giải thưởng lớn nào?`,
+        `Cột mốc sự nghiệp nổi bật của ${pageCtx.name}?`
+      ]
     : [
       'Gợi ý phim Oscar hay nhất',
       'Top 5 phim của Christopher Nolan',
@@ -123,26 +150,38 @@ export const AIChatbot: React.FC = () => {
     }
   ]);
 
-  // Reactively update CineBot AI initial message & suggestions when navigating to a new movie detail page
+  // Reactively update CineBot AI initial message & suggestions when navigating to a new movie or actor detail page
   useEffect(() => {
-    if (movieCtx?.title) {
-      const movieFollowUps = [
-        `Tóm tắt nội dung phim ${movieCtx.title}?`,
-        `Diễn viên nào nổi bật nhất trong ${movieCtx.title}?`,
-        `${movieCtx.title} đã giành những giải thưởng nào?`,
-        `Đánh giá phim ${movieCtx.title} có hay không?`
-      ];
+    if (pageCtx?.name) {
+      const followUps = pageCtx.type === 'movie'
+        ? [
+          `Tóm tắt nội dung phim ${pageCtx.name}?`,
+          `Diễn viên nào nổi bật nhất trong ${pageCtx.name}?`,
+          `${pageCtx.name} đã giành những giải thưởng nào?`,
+          `Đánh giá phim ${pageCtx.name} có hay không?`
+        ]
+        : [
+          `Tiểu sử và sự nghiệp của ${pageCtx.name}?`,
+          `Các phim hay nhất của ${pageCtx.name}?`,
+          `${pageCtx.name} đã đoạt những giải thưởng lớn nào?`,
+          `Cột mốc sự nghiệp nổi bật của ${pageCtx.name}?`
+        ];
+
+      const greeting = pageCtx.type === 'movie'
+        ? `Xin chào! Tôi là CineBot AI. Tôi thấy bạn đang xem **${pageCtx.name}** — hỏi tôi bất cứ điều gì về bộ phim này nhé!`
+        : `Xin chào! Tôi là CineBot AI. Tôi thấy bạn đang xem trang của diễn viên **${pageCtx.name}** — hỏi tôi bất cứ điều gì về sự nghiệp và tác phẩm của diễn viên này nhé!`;
+
       setMessages([
         {
-          id: `welcome-${movieCtx.id}`,
+          id: `welcome-${pageCtx.type}-${pageCtx.id}`,
           sender: 'ai',
-          text: `Xin chào! Tôi là CineBot AI. Tôi thấy bạn đang xem **${movieCtx.title}** — hỏi tôi bất cứ điều gì về bộ phim này nhé!`,
+          text: greeting,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          followUpQuestions: movieFollowUps
+          followUpQuestions: followUps
         }
       ]);
     }
-  }, [movieCtx]);
+  }, [pageCtx]);
 
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -173,9 +212,11 @@ export const AIChatbot: React.FC = () => {
         content: m.text
       }));
 
-      // Inject movie context prefix if on movie page
-      const contextPrefix = movieCtx?.title
-        ? `[Người dùng đang xem trang phim "${movieCtx.title}" trên CineWiki] `
+      // Inject movie or actor context prefix
+      const contextPrefix = pageCtx?.name
+        ? pageCtx.type === 'movie'
+          ? `[Người dùng đang xem trang phim "${pageCtx.name}" trên CineWiki] `
+          : `[Người dùng đang xem trang diễn viên "${pageCtx.name}" trên CineWiki] `
         : '';
 
       const res = await fetch('/api/ai/chat', {

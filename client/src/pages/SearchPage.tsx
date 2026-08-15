@@ -48,12 +48,24 @@ export const SearchPage: React.FC = () => {
   const [country, setCountry] = useState(() => searchParams.get('country') || 'all');
   const [year, setYear] = useState(() => searchParams.get('year') || 'all');
   const [type, setType] = useState(() => searchParams.get('type') || 'all');
-  const [yearFrom, setYearFrom] = useState(1950);
-  const [yearTo, setYearTo] = useState(2026);
+  const [yearFrom, setYearFrom] = useState(() => {
+    const yFrom = searchParams.get('yearFrom');
+    const y = searchParams.get('year');
+    if (yFrom) return parseInt(yFrom, 10);
+    if (y && y !== 'all') return parseInt(y, 10);
+    return 1950;
+  });
+  const [yearTo, setYearTo] = useState(() => {
+    const yTo = searchParams.get('yearTo');
+    const y = searchParams.get('year');
+    if (yTo) return parseInt(yTo, 10);
+    if (y && y !== 'all') return parseInt(y, 10);
+    return 2026;
+  });
 
-  const YEAR_OPTIONS = [1950, 1960, 1970, 1980, 1990, 1995, 2000, 2005, 2010, 2015, 2020, 2024, 2025, 2026];
+  const YEAR_OPTIONS = [1950, 1960, 1970, 1980, 1990, 1995, 2000, 2005, 2010, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
   const [minRating, setMinRating] = useState(0);
-  const [sort, setSort] = useState('rating');
+  const [sort, setSort] = useState(() => searchParams.get('sort') || 'popularity');
 
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
@@ -106,43 +118,55 @@ export const SearchPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchTerm, i18n.language]);
 
+  const isEn = i18n.language?.startsWith('en');
+
   const genresList = [
-    { label: 'Tất cả thể loại', value: 'all' },
-    { label: 'Hành động (Action)', value: 'Action' },
-    { label: 'Chính kịch (Drama)', value: 'Drama' },
-    { label: 'Tình cảm (Romance)', value: 'Romance' },
-    { label: 'Hài hước (Comedy)', value: 'Comedy' },
-    { label: 'Viễn tưởng (Sci-Fi)', value: 'Sci-Fi' },
-    { label: 'Kinh dị (Horror)', value: 'Horror' },
-    { label: 'Tội phạm (Crime)', value: 'Crime' },
-    { label: 'Chiến tranh (War)', value: 'War' },
-    { label: 'Lịch sử (History)', value: 'History' },
-    { label: 'Phiêu lưu (Adventure)', value: 'Adventure' },
-    { label: 'Hoạt hình (Animation)', value: 'Animation' },
-    { label: 'Kỳ ảo (Fantasy)', value: 'Fantasy' },
-    { label: 'Giật gân (Thriller)', value: 'Thriller' }
+    { label: isEn ? 'All Genres' : 'Tất cả thể loại', value: 'all' },
+    { label: isEn ? 'Action' : 'Hành động', value: 'Action' },
+    { label: isEn ? 'Drama' : 'Chính kịch', value: 'Drama' },
+    { label: isEn ? 'Romance' : 'Tình cảm', value: 'Romance' },
+    { label: isEn ? 'Comedy' : 'Hài hước', value: 'Comedy' },
+    { label: isEn ? 'Sci-Fi' : 'Viễn tưởng', value: 'Sci-Fi' },
+    { label: isEn ? 'Horror' : 'Kinh dị', value: 'Horror' },
+    { label: isEn ? 'Crime' : 'Tội phạm', value: 'Crime' },
+    { label: isEn ? 'War' : 'Chiến tranh', value: 'War' },
+    { label: isEn ? 'History' : 'Lịch sử', value: 'History' },
+    { label: isEn ? 'Adventure' : 'Phiêu lưu', value: 'Adventure' },
+    { label: isEn ? 'Animation' : 'Hoạt hình', value: 'Animation' },
+    { label: isEn ? 'Fantasy' : 'Kỳ ảo', value: 'Fantasy' },
+    { label: isEn ? 'Thriller' : 'Giật gân', value: 'Thriller' }
   ];
 
   const countriesList = [
-    { label: 'Tất cả quốc gia', value: 'all' },
-    { label: 'Mỹ (US)', value: 'US' },
-    { label: 'Hàn Quốc (KR)', value: 'KR' },
-    { label: 'Nhật Bản (JP)', value: 'JP' },
-    { label: 'Trung Quốc (CN)', value: 'CN' },
-    { label: 'Việt Nam (VN)', value: 'VN' },
-    { label: 'Anh (GB)', value: 'GB' },
-    { label: 'Pháp (FR)', value: 'FR' },
-    { label: 'Thái Lan (TH)', value: 'TH' }
+    { label: isEn ? 'All Countries' : 'Tất cả quốc gia', value: 'all' },
+    { label: isEn ? 'United Kingdom' : 'Anh', value: 'GB' },
+    { label: isEn ? 'South Korea' : 'Hàn Quốc', value: 'KR' },
+    { label: isEn ? 'United States' : 'Mỹ', value: 'US' },
+    { label: isEn ? 'Japan' : 'Nhật Bản', value: 'JP' },
+    { label: isEn ? 'France' : 'Pháp', value: 'FR' },
+    { label: isEn ? 'Thailand' : 'Thái Lan', value: 'TH' },
+    { label: isEn ? 'China' : 'Trung Quốc', value: 'CN' },
+    { label: isEn ? 'Vietnam' : 'Việt Nam', value: 'VN' }
   ];
 
   useEffect(() => {
     setSearchTerm(searchParams.get('q') || '');
     setGenre(searchParams.get('genre') || 'all');
     setCountry(searchParams.get('country') || 'all');
-    setYearFrom(searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!, 10) : 1950);
-    setYearTo(searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!, 10) : 2026);
+    const singleYear = searchParams.get('year');
+    setYear(singleYear || 'all');
+    if (singleYear && singleYear !== 'all') {
+      const yNum = parseInt(singleYear, 10);
+      if (!isNaN(yNum)) {
+        setYearFrom(searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!, 10) : yNum);
+        setYearTo(searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!, 10) : yNum);
+      }
+    } else {
+      setYearFrom(searchParams.get('yearFrom') ? parseInt(searchParams.get('yearFrom')!, 10) : 1950);
+      setYearTo(searchParams.get('yearTo') ? parseInt(searchParams.get('yearTo')!, 10) : 2026);
+    }
     setMinRating(searchParams.get('minRating') ? parseFloat(searchParams.get('minRating')!) : 0);
-    setSort(searchParams.get('sort') || 'rating');
+    setSort(searchParams.get('sort') || 'popularity');
     setPage(searchParams.get('page') ? parseInt(searchParams.get('page')!, 10) : 1);
   }, [searchParams]);
 
@@ -150,7 +174,18 @@ export const SearchPage: React.FC = () => {
     setSearchParams((prev) => {
       const u = new URLSearchParams(prev);
       const valStr = String(val);
-      if (!valStr || valStr === 'all' || (key === 'minRating' && valStr === '0') || (key === 'page' && valStr === '1') || (key === 'yearFrom' && valStr === '1950') || (key === 'yearTo' && valStr === '2026') || (key === 'sort' && valStr === 'ratingdate')) {
+      if (key === 'yearFrom' || key === 'yearTo') {
+        u.delete('year');
+      }
+      if (
+        !valStr ||
+        valStr === 'all' ||
+        (key === 'minRating' && valStr === '0') ||
+        (key === 'page' && valStr === '1') ||
+        (key === 'yearFrom' && valStr === '1950') ||
+        (key === 'yearTo' && valStr === '2026') ||
+        (key === 'sort' && valStr === 'popularity')
+      ) {
         u.delete(key);
       } else {
         u.set(key, valStr);
@@ -166,15 +201,18 @@ export const SearchPage: React.FC = () => {
         const currentQ = searchParams.get('q') || searchTerm;
         const urlGenre = searchParams.get('genre') || genre;
         const urlCountry = searchParams.get('country') || country;
-        const urlYear = searchParams.get('year') || year;
+        const urlYear = searchParams.get('year');
         const langParam = i18n.language?.startsWith('en') ? 'en-US' : 'vi-VN';
+
+        const effectiveYearFrom = (urlYear && urlYear !== 'all') ? urlYear : yearFrom.toString();
+        const effectiveYearTo = (urlYear && urlYear !== 'all') ? urlYear : yearTo.toString();
 
         const queryParams = new URLSearchParams({
           q: currentQ ? currentQ.trim() : '',
           genre: urlGenre,
           country: urlCountry,
-          yearFrom: urlYear !== 'all' ? urlYear : yearFrom.toString(),
-          yearTo: urlYear !== 'all' ? urlYear : yearTo.toString(),
+          yearFrom: effectiveYearFrom,
+          yearTo: effectiveYearTo,
           minRating: minRating.toString(),
           sort,
           page: page.toString(),
@@ -182,6 +220,12 @@ export const SearchPage: React.FC = () => {
         });
 
         const res = await fetch(`/api/movies/filter?${queryParams.toString()}`);
+        if (!res.ok) {
+          setMovies([]);
+          setTotalPages(1);
+          setTotalResults(0);
+          return;
+        }
         const data = await res.json();
         if (data.success) {
           const movieList = data.movies || [];
@@ -220,10 +264,10 @@ export const SearchPage: React.FC = () => {
     setCountry('all');
     setYear('all');
     setType('all');
-    setYearFrom(1990);
+    setYearFrom(1950);
     setYearTo(2026);
     setMinRating(0);
-    setSort('rating');
+    setSort('popularity');
     setPage(1);
   };
 
@@ -232,23 +276,23 @@ export const SearchPage: React.FC = () => {
   const activeCountry = searchParams.get('country') || country;
   const activeYear = searchParams.get('year') || year;
 
-  let pageTitle = 'Khám Phá & Lọc Điện Ảnh';
-  let pageSub = 'Kết hợp tìm kiếm từ khóa và nhiều điều kiện lọc đồng thời';
+  let pageTitle = isEn ? 'Explore & Filter Movies' : 'Khám Phá & Lọc Điện Ảnh';
+  let pageSub = isEn ? 'Combine keyword search with multiple filters simultaneously' : 'Kết hợp tìm kiếm từ khóa và nhiều điều kiện lọc đồng thời';
 
   if (activeQ) {
-    pageTitle = `Kết Quả Tìm Kiếm Phim`;
-    pageSub = `Danh sách các phim khớp với từ khóa "${activeQ}"`;
+    pageTitle = isEn ? `Search Results` : `Kết Quả Tìm Kiếm Phim`;
+    pageSub = isEn ? `Movies matching "${activeQ}"` : `Danh sách các phim khớp với từ khóa "${activeQ}"`;
   } else if (activeCountry !== 'all') {
     const cName = COUNTRY_MAP[activeCountry] || activeCountry;
-    pageTitle = `Phim Điện Ảnh ${cName}`;
-    pageSub = `Các tác phẩm điện ảnh nổi tiếng đến từ ${cName}`;
+    pageTitle = isEn ? `Movies from ${cName}` : `Phim Điện Ảnh ${cName}`;
+    pageSub = isEn ? `Famous movies from ${cName}` : `Các tác phẩm điện ảnh nổi tiếng đến từ ${cName}`;
   } else if (activeYear !== 'all') {
-    pageTitle = `Phim Phát Hành Năm ${activeYear}`;
-    pageSub = `Tuyển tập các tác phẩm điện ảnh ra mắt năm ${activeYear}`;
+    pageTitle = isEn ? `Movies Released in ${activeYear}` : `Phim Phát Hành Năm ${activeYear}`;
+    pageSub = isEn ? `Movies released in year ${activeYear}` : `Tuyển tập các tác phẩm điện ảnh ra mắt năm ${activeYear}`;
   } else if (activeGenre !== 'all') {
     const gName = GENRE_MAP[activeGenre] || activeGenre;
-    pageTitle = `Phim Thể Loại ${gName}`;
-    pageSub = `Tuyển tập bộ phim hấp dẫn thuộc thể loại ${gName}`;
+    pageTitle = isEn ? `${gName} Movies` : `Phim Thể Loại ${gName}`;
+    pageSub = isEn ? `Top movies in ${gName} genre` : `Tuyển tập bộ phim hấp dẫn thuộc thể loại ${gName}`;
   }
 
   const hasActiveFilter = activeQ || activeGenre !== 'all' || activeCountry !== 'all' || activeYear !== 'all';
@@ -273,15 +317,14 @@ export const SearchPage: React.FC = () => {
             className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
-            <span>Xóa bộ lọc</span>
+            <span>{isEn ? 'Clear Filters' : 'Xóa bộ lọc'}</span>
           </button>
         )}
       </div>
 
       {/* Primary Keyword Search Bar — Full Width (Matching Filter Box) with Live Suggestions */}
       <div ref={searchContainerRef} className="relative w-full">
-        <div className="w-full glass-panel rounded-2xl p-2.5 border border-amber-500/40 shadow-xl flex items-center space-x-3 bg-slate-900/90">
-          <SearchIcon className="w-4 h-4 text-amber-400 flex-shrink-0 ml-2" />
+        <div className="w-full rounded-lg p-2.5 border border-amber-500/40 shadow-xl flex items-center justify-between bg-white relative">
           <input
             type="text"
             value={searchTerm}
@@ -295,9 +338,10 @@ export const SearchPage: React.FC = () => {
                 handleExecuteSearch();
               }
             }}
-            placeholder="Gõ tên phim tìm kiếm (ví dụ: Mai, Oppenheimer, Avatar, Bố Già...)"
-            className="flex-1 bg-transparent text-xs text-slate-100 placeholder-slate-400 focus:outline-none pl-1"
+            placeholder={isEn ? 'Search movie title (e.g. Mai, Oppenheimer, Avatar...)' : 'Gõ tên phim tìm kiếm (ví dụ: Mai, Oppenheimer, Avatar, Bố Già...)'}
+            className="flex-1 bg-white text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none pl-2 pr-10"
           />
+          <SearchIcon className="w-4 h-4 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           {searchTerm && (
             <button
               onClick={() => {
@@ -316,7 +360,7 @@ export const SearchPage: React.FC = () => {
             }}
             className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-md transition active:scale-95 cursor-pointer flex-shrink-0"
           >
-            Tìm kiếm
+            {isEn ? 'Search' : 'Tìm kiếm'}
           </button>
         </div>
 
@@ -324,8 +368,8 @@ export const SearchPage: React.FC = () => {
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden z-50 backdrop-blur-xl">
             <div className="p-2.5 border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-semibold px-4 bg-slate-950/40">
-              <span>Gợi ý phim tìm kiếm cho "{searchTerm}"</span>
-              <span>{suggestions.length} phim</span>
+              <span>{isEn ? `Search suggestions for "${searchTerm}"` : `Gợi ý phim tìm kiếm cho "${searchTerm}"`}</span>
+              <span>{suggestions.length} {isEn ? 'movies' : 'phim'}</span>
             </div>
             <div className="divide-y divide-slate-800/60 max-h-80 overflow-y-auto">
               {suggestions.map((m) => (
@@ -367,7 +411,7 @@ export const SearchPage: React.FC = () => {
       <div className="glass-panel rounded-3xl p-6 border border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Genre Selector */}
         <div>
-          <label className="text-xs font-bold text-slate-300 block mb-2">Thể loại</label>
+          <label className="text-xs font-bold text-slate-300 block mb-2">{isEn ? 'Genre' : 'Thể loại'}</label>
           <select
             value={genre}
             onChange={(e) => {
@@ -391,7 +435,7 @@ export const SearchPage: React.FC = () => {
 
         {/* Country Selector */}
         <div>
-          <label className="text-xs font-bold text-slate-300 block mb-2">Quốc gia</label>
+          <label className="text-xs font-bold text-slate-300 block mb-2">{isEn ? 'Country' : 'Quốc gia'}</label>
           <select
             value={country}
             onChange={(e) => {
@@ -415,7 +459,7 @@ export const SearchPage: React.FC = () => {
 
         {/* Year Range Select Dropdowns (Default: 1950 to 2026) */}
         <div>
-          <label className="text-xs font-bold text-slate-300 block mb-2">Năm phát hành</label>
+          <label className="text-xs font-bold text-slate-300 block mb-2">{isEn ? 'Release Year' : 'Năm phát hành'}</label>
           <div className="grid grid-cols-2 gap-2">
             <select
               value={yearFrom}
@@ -429,7 +473,7 @@ export const SearchPage: React.FC = () => {
             >
               {YEAR_OPTIONS.map((y) => (
                 <option key={`from-${y}`} value={y}>
-                  Từ {y}
+                  {isEn ? `From ${y}` : `Từ ${y}`}
                 </option>
               ))}
             </select>
@@ -445,7 +489,7 @@ export const SearchPage: React.FC = () => {
             >
               {YEAR_OPTIONS.map((y) => (
                 <option key={`to-${y}`} value={y}>
-                  Đến {y}
+                  {isEn ? `To ${y}` : `Đến ${y}`}
                 </option>
               ))}
             </select>
@@ -455,7 +499,7 @@ export const SearchPage: React.FC = () => {
         {/* Min Rating */}
         <div>
           <label className="text-xs font-bold text-slate-300 block mb-2">
-            Rating tối thiểu (&ge; {minRating})
+            {isEn ? `Min Rating (≥ ${minRating})` : `Rating tối thiểu (≥ ${minRating})`}
           </label>
           <input
             type="range"
@@ -469,14 +513,14 @@ export const SearchPage: React.FC = () => {
               updateParam('minRating', mr);
               setPage(1);
             }}
-            aria-label="Rating tối thiểu"
+            aria-label="Min Rating"
             className="w-full accent-amber-500"
           />
         </div>
 
         {/* Sort By */}
         <div>
-          <label className="text-xs font-bold text-slate-300 block mb-2">Sắp xếp theo</label>
+          <label className="text-xs font-bold text-slate-300 block mb-2">{isEn ? 'Sort By' : 'Sắp xếp theo'}</label>
           <select
             value={sort}
             onChange={(e) => {
@@ -486,17 +530,16 @@ export const SearchPage: React.FC = () => {
             }}
             className="w-full py-2 px-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-amber-400"
           >
-            <option value="popularity">Độ phổ biến</option>
-            <option value="rating">Điểm IMDb cao nhất</option>
-            <option value="date">Năm phát hành mới nhất</option>
-
+            <option value="popularity">{isEn ? 'Popularity' : 'Độ phổ biến'}</option>
+            <option value="rating">{isEn ? 'Highest IMDb Score' : 'Điểm IMDb cao nhất'}</option>
+            <option value="date">{isEn ? 'Newest Release Date' : 'Năm phát hành mới nhất'}</option>
           </select>
         </div>
       </div>
 
       {/* Results Header */}
       <div className="flex items-center justify-between text-xs text-slate-400">
-        <span>Tìm thấy {movies.length} kết quả phù hợp</span>
+        <span>{isEn ? `Found ${movies.length} matching results` : `Tìm thấy ${movies.length} kết quả phù hợp`}</span>
       </div>
 
       {/* Results Grid */}

@@ -129,10 +129,10 @@ export const filterMovies = async (req: Request, res: Response) => {
     const q = (req.query.q as string) || (req.query.query as string) || '';
     const genre = (req.query.genre as string) || 'all';
     const country = (req.query.country as string) || 'all';
-    const yearFrom = parseInt(req.query.yearFrom as string, 10) || 1980;
-    const yearTo = parseInt(req.query.yearTo as string, 10) || 2026;
+    const yearFrom = req.query.yearFrom ? parseInt(req.query.yearFrom as string, 10) : 1950;
+    const yearTo = req.query.yearTo ? parseInt(req.query.yearTo as string, 10) : 2026;
     const minRating = parseFloat(req.query.minRating as string) || 0;
-    const sort = (req.query.sort as string) || 'rating';
+    const sort = (req.query.sort as string) || 'popularity';
     const page = parseInt(req.query.page as string, 10) || 1;
     const language = (req.query.lang as string) || 'vi-VN';
 

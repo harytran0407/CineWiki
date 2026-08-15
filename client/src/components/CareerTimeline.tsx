@@ -15,7 +15,7 @@ export const CareerTimeline: React.FC<CareerTimelineProps> = ({ filmography, act
 
   const [colorMode, setColorMode] = useState<'genre' | 'rating'>('rating');
   const [selectedItem, setSelectedItem] = useState<FilmographyItem | null>(null);
-  const [spacingMode, setSpacingMode] = useState<'normal' | 'compact'>('normal');
+  const [spacingMode] = useState<'normal' | 'compact'>('compact');
 
   useEffect(() => {
     setSelectedItem(null);
@@ -90,15 +90,6 @@ export const CareerTimeline: React.FC<CareerTimelineProps> = ({ filmography, act
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-
-          {/* Spacing density switch */}
-          <button
-            onClick={() => setSpacingMode(spacingMode === 'normal' ? 'compact' : 'normal')}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-300 transition flex items-center space-x-1"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
-            <span>{spacingMode === 'normal' ? 'Mật độ: Thưa' : 'Mật độ: Dày'}</span>
-          </button>
 
           {/* Color Mode Switch */}
           <div className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-full border border-slate-800">

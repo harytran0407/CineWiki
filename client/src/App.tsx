@@ -110,7 +110,7 @@ export const App: React.FC = () => {
           setUser={setUser}
         />
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+        <main className="flex-1 max-w-[1700px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8">
           <Routes>
             <Route
               path="/"
@@ -125,17 +125,6 @@ export const App: React.FC = () => {
             <Route path="/search" element={<SearchPage />} />
             <Route path="/actors" element={<ActorListPage />} />
             <Route path="/network/:actorId?" element={<NetworkPage />} />
-            <Route
-              path="/following"
-              element={
-                <FollowingPage
-                  user={user}
-                  userFollowIds={userFollowIds}
-                  onToggleFollow={handleToggleFollow}
-                  notifications={notifications}
-                />
-              }
-            />
           </Routes>
         </main>
 
