@@ -169,3 +169,17 @@ export const compareMovies = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: (error as Error).message });
   }
 };
+
+export const getUniverseContent = async (req: Request, res: Response) => {
+  try {
+    const universeId = req.params.universeId || 'mcu';
+    const mediaType = (req.query.mediaType as string) || 'all';
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const lang = (req.query.lang as string) || 'vi-VN';
+
+    const result = await TMDBService.getUniverseContent(universeId, mediaType, page, lang);
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: (error as Error).message });
+  }
+};

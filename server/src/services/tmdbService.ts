@@ -1092,4 +1092,83 @@ export class TMDBService {
       filmography
     };
   }
+
+  static async getUniverseContent(
+    universeId: string,
+    mediaType: string = 'all',
+    page: number = 1,
+    language: string = 'vi-VN'
+  ): Promise<{ results: any[]; page: number; total_pages: number }> {
+    try {
+      const UNIVERSE_PARAMS: Record<string, { movieKw?: number; tvKw?: number; company?: number }> = {
+        mcu: { movieKw: 180547, company: 420 },
+        dc: { movieKw: 242407, company: 128064 },
+        starwars: { movieKw: 161176, company: 1 },
+        monsterverse: { movieKw: 263548, company: 923 }
+      };
+
+      const params = UNIVERSE_PARAMS[universeId.toLowerCase()] || UNIVERSE_PARAMS.mcu;
+      let movies: any[] = [];
+      let tvShows: any[] = [];
+      let totalPages = 1;
+
+      if (mediaType === 'all' || mediaType === 'movie') {
+        const movieRes = await this.getAxiosClient().get('/discover/movie', {
+          params: {
+            language,
+            page,
+            sort_by: 'primary_release_date.desc',
+            with_keywords: params.movieKw,
+            with_companies: params.company
+          }
+        });
+        if (movieRes.data && movieRes.data.results) {
+          movies = movieRes.data.results.map((m: any) => ({
+            ...this.mapTMDBMovie(m),
+            media_type: 'movie'
+          }));
+          totalPages = Math.max(totalPages, movieRes.data.total_pages || 1);
+        }
+      }
+
+      if (mediaType === 'all' || mediaType === 'tv') {
+        const tvRes = await this.getAxiosClient().get('/discover/tv', {
+          params: {
+            language,
+            page,
+            sort_by: 'first_air_date.desc',
+            with_keywords: params.tvKw || params.movieKw,
+            with_companies: params.company
+          }
+        });
+        if (tvRes.data && tvRes.data.results) {
+          tvShows = tvRes.data.results.map((t: any) => ({
+            id: t.id,
+            title: t.name || t.original_name,
+            original_title: t.original_name,
+            release_date: t.first_air_date || '',
+            poster_path: t.poster_path ? `https://image.tmdb.org/t/p/w500${t.poster_path}` : '',
+            backdrop_path: t.backdrop_path ? `https://image.tmdb.org/t/p/w1280${t.backdrop_path}` : '',
+            vote_average: t.vote_average ? Math.round(t.vote_average * 10) / 10 : 0,
+            overview: t.overview || '',
+            media_type: 'tv'
+          }));
+          totalPages = Math.max(totalPages, tvRes.data.total_pages || 1);
+        }
+      }
+
+      const combined = [...movies, ...tvShows].sort(
+        (a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime()
+      );
+
+      return {
+        results: combined,
+        page,
+        total_pages: Math.min(totalPages, 500)
+      };
+    } catch (err) {
+      console.warn(`[TMDB API Error] getUniverseContent failed for ${universeId}: ${(err as Error).message}`);
+      return { results: [], page: 1, total_pages: 1 };
+    }
+  }
 }

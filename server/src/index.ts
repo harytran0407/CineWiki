@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 import express from 'express';
 import cors from 'cors';
-import { getTrendingMovies, getUpcomingMovies, getMovieDetails, searchAll, filterMovies, compareMovies } from './controllers/movieController';
+import { getTrendingMovies, getUpcomingMovies, getMovieDetails, searchAll, filterMovies, compareMovies, getUniverseContent } from './controllers/movieController';
 import { getPopularActors, getActorDetails, compareActors, getActorNetworkGraph, translateText, enrichActorInsight, chatWithAIController } from './controllers/actorController';
 import { getFollows, toggleFollowActor, getNotifications, markNotificationRead, loginOrRegister } from './controllers/userController';
 import { CronService } from './services/cronService';
@@ -45,6 +45,7 @@ app.get('/api/movies/upcoming', getUpcomingMovies);
 app.get('/api/movies/search', searchAll);
 app.get('/api/movies/filter', filterMovies);
 app.get('/api/movies/compare', compareMovies);
+app.get('/api/universes/:universeId', getUniverseContent);
 app.get('/api/movies/:id', getMovieDetails);
 
 // Actors & Analysis
@@ -73,6 +74,10 @@ app.get('/api/health', (req, res) => {
 // Initialize Background Cron Engine
 CronService.initBackgroundJobs();
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 CineWiki Express Proxy Server listening on http://0.0.0.0:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 CineWiki Express Proxy Server listening on http://0.0.0.0:${PORT}`);
+  });
+}
+
+export default app;
