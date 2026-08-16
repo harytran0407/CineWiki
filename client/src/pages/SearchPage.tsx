@@ -552,9 +552,13 @@ export const SearchPage: React.FC = () => {
         </div>
       ) : movies.length === 0 ? (
         <EmptyState
-          title="Không tìm thấy phim phù hợp"
-          description={activeQ ? `Không tìm thấy bộ phim nào trùng khớp với từ khóa "${activeQ}".` : "Thử nới lỏng bộ lọc năm phát hành, thể loại hoặc điểm đánh giá tối thiểu."}
-          actionLabel="Đặt lại tìm kiếm"
+          title={isEn ? 'No Matching Movies Found' : 'Không tìm thấy phim phù hợp'}
+          description={
+            activeQ
+              ? (isEn ? `No movies found matching keyword "${activeQ}".` : `Không tìm thấy bộ phim nào trùng khớp với từ khóa "${activeQ}".`)
+              : (isEn ? 'Try adjusting your year, genre, or rating filters.' : 'Thử nới lỏng bộ lọc năm phát hành, thể loại hoặc điểm đánh giá tối thiểu.')
+          }
+          actionLabel={isEn ? 'Reset Search' : 'Đặt lại tìm kiếm'}
           onAction={handleResetFilters}
         />
       ) : (

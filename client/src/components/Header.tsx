@@ -181,10 +181,8 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
         {/* Logo Brand */}
         <div onClick={() => navigate('/')} className="flex items-center space-x-3 cursor-pointer group flex-shrink-0">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition">
-            <Film className="w-5 h-5 text-slate-950 stroke-[2.5]" />
-          </div>
-          <span className="text-xl font-black tracking-tight text-white group-hover:text-amber-400 transition">
+          <img src="/logo.png" alt="CineWiki Logo" className="w-12 h-12 object-contain group-hover:scale-105 transition drop-shadow-[0_0_10px_rgba(245,158,11,0.25)]" />
+          <span className="text-xl font-black tracking-tight text-white inline-block group-hover:scale-110 transition-transform transform origin-left">
             Cine<span className="text-amber-400">Wiki</span>
           </span>
         </div>
@@ -361,11 +359,10 @@ export const Header: React.FC<HeaderProps> = ({
                 setShowGenreMenu(false);
                 setShowCountryMenu(false);
               }}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1 transition cursor-pointer ${
-                location.pathname.startsWith('/actors')
+              className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1 transition cursor-pointer ${location.pathname.startsWith('/actors')
                   ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold'
                   : 'text-slate-200 hover:text-amber-400 hover:bg-slate-900/80'
-              }`}
+                }`}
             >
               <span>{t('nav.actors')}</span>
               <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition transform ${showActorMenu ? 'rotate-180 text-amber-400' : ''}`} />

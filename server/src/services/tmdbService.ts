@@ -45,6 +45,80 @@ const GENRE_NAME_TO_ID: Record<string, number> = {
   western: 37
 };
 
+const SEARCH_ALIASES: Record<string, string[]> = {
+  'batman': ['Batman', 'The Dark Knight', 'Dark Knight', 'Kị Sĩ Bóng Đêm', 'Kỵ Sĩ Bóng Đêm', 'Batman Begins'],
+  'dark knight': ['The Dark Knight', 'Dark Knight', 'Batman', 'Kị Sĩ Bóng Đêm', 'Kỵ Sĩ Bóng Đêm'],
+  'the dark knight': ['The Dark Knight', 'Dark Knight', 'Batman', 'Kị Sĩ Bóng Đêm', 'Kỵ Sĩ Bóng Đêm'],
+  'kị sĩ bóng đêm': ['The Dark Knight', 'Dark Knight', 'Batman'],
+  'kỵ sĩ bóng đêm': ['The Dark Knight', 'Dark Knight', 'Batman'],
+  'ky si bong dem': ['The Dark Knight', 'Dark Knight', 'Batman'],
+  'ki si bong dem': ['The Dark Knight', 'Dark Knight', 'Batman'],
+  'avenger': ['Avengers', 'The Avengers', 'Biệt Đội Siêu Anh Hùng'],
+  'avengers': ['Avengers', 'The Avengers', 'Biệt Đội Siêu Anh Hùng'],
+  'biệt đội siêu anh hùng': ['Avengers', 'The Avengers'],
+  'biet doi sieu anh hung': ['Avengers', 'The Avengers'],
+  'spider-man': ['Spider-Man', 'Spiderman', 'Người Nhện'],
+  'spiderman': ['Spider-Man', 'Spiderman', 'Người Nhện'],
+  'spider man': ['Spider-Man', 'Spiderman', 'Người Nhện'],
+  'nguoi nhen': ['Spider-Man', 'Spiderman'],
+  'người nhện': ['Spider-Man', 'Spiderman'],
+  'iron man': ['Iron Man', 'Ironman', 'Người Sắt'],
+  'ironman': ['Iron Man', 'Ironman', 'Người Sắt'],
+  'nguoi sat': ['Iron Man', 'Ironman'],
+  'người sắt': ['Iron Man', 'Ironman'],
+  'star war': ['Star Wars', 'Chiến Tranh Giữa Các Vì Sao'],
+  'star wars': ['Star Wars', 'Chiến Tranh Giữa Các Vì Sao'],
+  'harry potter': ['Harry Potter'],
+  'fast and furious': ['Fast & Furious', 'Fast and Furious', 'Quá Nhanh Quá Nguy Hiểm'],
+  'fast & furious': ['Fast & Furious', 'Fast and Furious', 'Quá Nhanh Quá Nguy Hiểm'],
+  'qua nhanh qua nguy hiem': ['Fast & Furious', 'Fast and Furious'],
+  'quá nhanh quá nguy hiểm': ['Fast & Furious', 'Fast and Furious'],
+  'mission impossible': ['Mission: Impossible', 'Nhiệm Vụ Bất Khả Thi'],
+  'nhiem vu bat kha thi': ['Mission: Impossible'],
+  'nhiệm vụ bất khả thi': ['Mission: Impossible'],
+  'lord of the rings': ['The Lord of the Rings', 'Chúa Tể Những Chiếc Nhẫn'],
+  'chua te nhung chiec nhan': ['The Lord of the Rings'],
+  'chúa tể những chiếc nhẫn': ['The Lord of the Rings'],
+  'transformers': ['Transformers', 'Robot Biến Hình'],
+  'transformer': ['Transformers', 'Robot Biến Hình'],
+  'x-men': ['X-Men', 'Xmen', 'Dị Nhân'],
+  'xmen': ['X-Men', 'Xmen', 'Dị Nhân'],
+  'jurassic': ['Jurassic World', 'Jurassic Park', 'Thế Giới Khủng Long'],
+  'matrix': ['The Matrix', 'Matrix', 'Ma Trận'],
+  'ma trận': ['The Matrix', 'Matrix', 'Ma Trận'],
+  'ma tran': ['The Matrix', 'Matrix', 'Ma Trận']
+};
+
+function getSmartSearchQueries(rawQuery: string): string[] {
+  const clean = rawQuery.trim();
+  if (!clean) return [];
+
+  const lower = clean.toLowerCase();
+  const queriesSet = new Set<string>();
+  queriesSet.add(clean);
+
+  // Check direct alias map
+  if (SEARCH_ALIASES[lower]) {
+    SEARCH_ALIASES[lower].forEach((alias) => queriesSet.add(alias));
+  }
+
+  // Check partial keyword alias matches
+  Object.keys(SEARCH_ALIASES).forEach((key) => {
+    if (lower.includes(key) || key.includes(lower)) {
+      SEARCH_ALIASES[key].forEach((alias) => queriesSet.add(alias));
+    }
+  });
+
+  // Singular/Plural stemming expansion
+  if (lower.endsWith('s') && lower.length > 3) {
+    queriesSet.add(clean.slice(0, -1));
+  } else if (!lower.endsWith('s') && lower.length > 2) {
+    queriesSet.add(`${clean}s`);
+  }
+
+  return Array.from(queriesSet);
+}
+
 const COUNTRY_TO_LANG_MAP: Record<string, { country?: string; lang?: string }> = {
   US: { country: 'US', lang: 'en' },
   KR: { country: 'KR', lang: 'ko' },
@@ -834,13 +908,51 @@ export class TMDBService {
 
   static async searchAll(query: string, language: string = 'vi-VN') {
     try {
-      const [movRes, actRes] = await Promise.all([
-        this.getAxiosClient().get('/search/movie', { params: { query, language } }),
-        this.getAxiosClient().get('/search/person', { params: { query, language } })
+      const searchQueries = getSmartSearchQueries(query);
+      const searchLangs = Array.from(new Set([language, 'vi-VN', 'en-US']));
+      const searchReqs: Promise<any>[] = [];
+
+      searchLangs.forEach((langStr) => {
+        searchQueries.forEach((qStr) => {
+          searchReqs.push(
+            this.getAxiosClient().get('/search/movie', { params: { query: qStr, language: langStr } }).catch(() => null)
+          );
+        });
+      });
+
+      const [movResponses, actRes] = await Promise.all([
+        Promise.all(searchReqs),
+        this.getAxiosClient().get('/search/person', { params: { query, language } }).catch(() => null)
       ]);
+
+      const movieMap = new Map<number, Movie>();
+      for (const res of movResponses) {
+        if (!res || !res.data || !res.data.results) continue;
+        res.data.results.forEach((m: any) => {
+          if (isValidMovie(m) && !movieMap.has(m.id)) {
+            movieMap.set(m.id, this.mapTMDBMovie(m));
+          }
+        });
+      }
+
+      const movies = Array.from(movieMap.values());
+      movies.sort((a, b) => {
+        const titleA = (a.title || '').toLowerCase();
+        const titleB = (b.title || '').toLowerCase();
+        const origA = (a.original_title || '').toLowerCase();
+        const origB = (b.original_title || '').toLowerCase();
+        const lowerQ = query.toLowerCase();
+
+        const exactA = titleA.includes(lowerQ) || origA.includes(lowerQ) ? 1 : 0;
+        const exactB = titleB.includes(lowerQ) || origB.includes(lowerQ) ? 1 : 0;
+
+        if (exactA !== exactB) return exactB - exactA;
+        return (b.vote_average || 0) * (b.vote_count || 0) > (a.vote_average || 0) * (a.vote_count || 0) ? 1 : -1;
+      });
+
       return {
-        movies: movRes.data?.results?.filter((m: any) => isValidMovie(m)).map((m: any) => this.mapTMDBMovie(m)) || [],
-        actors: actRes.data?.results?.filter((a: any) => a.profile_path).map((a: any) => this.mapTMDBActor(a)) || []
+        movies,
+        actors: actRes?.data?.results?.filter((a: any) => a.profile_path).map((a: any) => this.mapTMDBActor(a)) || []
       };
     } catch (err) {
       console.warn(`[TMDB API Error] /search failed: ${(err as Error).message}`);
@@ -869,10 +981,6 @@ export class TMDBService {
     const page = Math.max(1, opts.page || 1);
     const language = opts.language || 'vi-VN';
 
-    // Vote volume on TMDB varies hugely by market. Global/US titles routinely clear
-    // 300+ (or 1000+ for very recent releases) votes, but regional markets like Vietnam
-    // rarely do — even well-known, well-reviewed titles. Use lower thresholds for
-    // non-global markets so valid regional movies aren't scored as 0 and filtered out.
     const isGlobalMarket = country === 'all' || country === 'US';
     const minVoteCount = isGlobalMarket ? 300 : 5;
     const minVoteCountRecent = isGlobalMarket ? 1000 : 20;
@@ -883,14 +991,77 @@ export class TMDBService {
 
     try {
       if (q) {
-        const tmdbRes = await this.getAxiosClient().get('/search/movie', {
-          params: { query: q, language, page }
+        const searchQueries = getSmartSearchQueries(q);
+        const searchLangs = Array.from(new Set([language, 'vi-VN', 'en-US']));
+        const searchReqs: Promise<any>[] = [];
+
+        searchLangs.forEach((langStr) => {
+          searchQueries.forEach((queryStr) => {
+            searchReqs.push(
+              this.getAxiosClient()
+                .get('/search/movie', { params: { query: queryStr, language: langStr, page } })
+                .catch(() => null)
+            );
+          });
         });
-        if (tmdbRes.data?.results) {
-          candidateMovies = tmdbRes.data.results.map((m: any) => this.mapTMDBMovie(m, minVoteCount, minVoteCountRecent));
-          tmdbTotalPages = Math.min(tmdbRes.data.total_pages || 1, 500);
-          tmdbTotalResults = tmdbRes.data.total_results || candidateMovies.length;
+
+        const searchResponses = await Promise.all(searchReqs);
+
+        const movieMap = new Map<number, Movie>();
+        let maxPages = 1;
+        let totalCount = 0;
+
+        for (const res of searchResponses) {
+          if (!res || !res.data || !res.data.results) continue;
+          maxPages = Math.max(maxPages, Math.min(res.data.total_pages || 1, 500));
+          totalCount = Math.max(totalCount, res.data.total_results || 0);
+
+          res.data.results.forEach((m: any) => {
+            if (!movieMap.has(m.id)) {
+              movieMap.set(m.id, this.mapTMDBMovie(m, minVoteCount, minVoteCountRecent));
+            }
+          });
         }
+
+        candidateMovies = Array.from(movieMap.values());
+        const searchQueriesLower = searchQueries.map((s) => s.toLowerCase());
+
+        candidateMovies.sort((a, b) => {
+          const titleA = (a.title || '').toLowerCase();
+          const titleB = (b.title || '').toLowerCase();
+          const origA = (a.original_title || '').toLowerCase();
+          const origB = (b.original_title || '').toLowerCase();
+          const titleViA = (a.title_vi || '').toLowerCase();
+          const titleViB = (b.title_vi || '').toLowerCase();
+
+          const matchA = searchQueriesLower.some(
+            (sq) => titleA.includes(sq) || origA.includes(sq) || (titleViA && titleViA.includes(sq)) || sq.includes(titleA) || sq.includes(origA)
+          ) ? 1 : 0;
+
+          const matchB = searchQueriesLower.some(
+            (sq) => titleB.includes(sq) || origB.includes(sq) || (titleViB && titleViB.includes(sq)) || sq.includes(titleB) || sq.includes(origB)
+          ) ? 1 : 0;
+
+          if (matchA !== matchB) return matchB - matchA;
+
+          if (sort === 'rating') {
+            const scoreA = a.imdb_score || a.vote_average || 0;
+            const scoreB = b.imdb_score || b.vote_average || 0;
+            const mThreshold = isGlobalMarket ? 2500 : 250;
+            const wrA = calculateWeightedRating(scoreA, a.vote_count || 0, mThreshold, 6.9);
+            const wrB = calculateWeightedRating(scoreB, b.vote_count || 0, mThreshold, 6.9);
+
+            if (Math.abs(wrB - wrA) >= 0.01) {
+              return wrB - wrA;
+            }
+            return scoreB - scoreA;
+          }
+
+          return (b.vote_average || 0) * (b.vote_count || 0) - (a.vote_average || 0) * (a.vote_count || 0);
+        });
+
+        tmdbTotalPages = maxPages;
+        tmdbTotalResults = Math.max(totalCount, candidateMovies.length);
       } else {
         const todayStr = new Date().toISOString().split('T')[0];
         let primaryReleaseLte = `${yearTo}-12-31`;
@@ -1000,13 +1171,6 @@ export class TMDBService {
     let allMovies = candidateMovies.filter((m) => isValidMovie(m));
 
     allMovies = allMovies.filter((m) => {
-      if (q) {
-        const queryLower = q.toLowerCase();
-        const titleMatch = m.title.toLowerCase().includes(queryLower);
-        const origTitleMatch = m.original_title.toLowerCase().includes(queryLower);
-        const titleViMatch = m.title_vi ? m.title_vi.toLowerCase().includes(queryLower) : false;
-        if (!titleMatch && !origTitleMatch && !titleViMatch) return false;
-      }
 
       if (country && country !== 'all') {
         const cUpper = country.toUpperCase();
@@ -1316,6 +1480,7 @@ export class TMDBService {
       vote_count: m.vote_count || 0,
       imdb_score: isUpcoming ? undefined : score,
       weighted_rating: isUpcoming ? undefined : calculateWeightedRating(score, m.vote_count || 0, 2500, 6.9),
+      popularity: m.popularity ? Math.round(m.popularity * 10) / 10 : 0,
       overview: m.overview || '',
       overview_vi: m.overview || '',
       cast: []
@@ -1344,6 +1509,28 @@ export class TMDBService {
       ? `https://www.youtube-nocookie.com/embed/${youtubeTrailer.key}`
       : undefined;
 
+    const castList = m.credits?.cast?.slice(0, 5) || [];
+    const castNames = castList.map((c: any) => c.name).filter(Boolean);
+    const topCastStr = castNames.length > 0 ? castNames.join(', ') : 'nhiều diễn viên tên tuổi';
+
+    const rawOverview = (m.overview || '').trim();
+    const p1 = rawOverview || `${m.title || m.original_title} là một tác phẩm điện ảnh thuộc thể loại ${(m.genres || []).map((g: any) => g.name).join(', ') || 'Điện ảnh'}.`;
+
+    const p2_vi = `Tác phẩm quy tụ dàn diễn viên thực lực với sự tham gia của ${topCastStr}, mang đến những màn hóa thân đầy cảm xúc và sức hút trên màn ảnh.`;
+    const p2_en = castNames.length > 0 
+      ? `The film features a compelling performance by ${castNames[0]}${castNames.length > 1 ? ` alongside an impressive ensemble including ${castNames.slice(1).join(', ')}` : ''}.`
+      : `The film features impressive performances by a talented ensemble cast.`;
+
+    const dirStr = director !== 'Chưa có dữ liệu' ? director : 'đội ngũ đạo diễn kinh nghiệm';
+    const writerStr = writer && writer !== director ? writer : undefined;
+    const studioStr = studio !== 'Chưa có dữ liệu' ? studio : 'các hãng phim uy tín';
+
+    const p3_vi = `Dưới sự chỉ đạo nghệ thuật của đạo diễn ${dirStr}${writerStr ? ` cùng kịch bản do ${writerStr} đảm nhận` : ''}, tác phẩm do ${studioStr} thực hiện, ghi dấu ấn với tư duy điện ảnh sắc bén, hình ảnh thị giác ấn tượng và ngôn ngữ điện ảnh cuốn hút.`;
+    const p3_en = `Directed by ${dirStr}${writerStr ? ` with a screenplay by ${writerStr}` : ''}, the production was brought to life by ${studioStr}, showcasing exceptional cinematic craftsmanship and visual storytelling.`;
+
+    const enrichedOverviewVi = `${p1}\n\n${p2_vi}\n\n${p3_vi}`;
+    const enrichedOverviewEn = `${p1}\n\n${p2_en}\n\n${p3_en}`;
+
     return {
       id: m.id,
       title: m.title || m.original_title,
@@ -1363,12 +1550,13 @@ export class TMDBService {
       vote_count: m.vote_count || 0,
       imdb_score: isUpcoming ? undefined : score,
       weighted_rating: isUpcoming ? undefined : calculateWeightedRating(score, m.vote_count || 0, 2500, 6.9),
+      popularity: m.popularity ? Math.round(m.popularity * 10) / 10 : 0,
       rotten_tomatoes: undefined,
       metacritic_score: undefined,
       budget: m.budget && m.budget > 0 ? (m.budget >= 1000000000 ? `$${(m.budget / 1000000000).toFixed(2).replace(/\.00$/, '')} Tỷ USD` : `$${(m.budget / 1000000).toFixed(0)} Triệu USD`) : undefined,
       box_office: m.revenue && m.revenue > 0 ? (m.revenue >= 1000000000 ? `$${(m.revenue / 1000000000).toFixed(2).replace(/\.00$/, '')} Tỷ USD` : `$${(m.revenue / 1000000).toFixed(0)} Triệu USD`) : undefined,
-      overview: m.overview || '',
-      overview_vi: m.overview || '',
+      overview: enrichedOverviewEn,
+      overview_vi: enrichedOverviewVi,
       cast: m.credits?.cast?.slice(0, 10).map((c: any) => ({
         id: c.id,
         name: c.name,

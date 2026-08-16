@@ -20,12 +20,10 @@ export const Footer: React.FC = () => {
 
           {/* Col 1: Brand & Intro */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <Film className="w-5 h-5 text-slate-950 font-extrabold" />
-              </div>
+            <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => navigate('/')}>
+              <img src="/logo.png" alt="CineWiki Logo" className="w-12 h-12 object-contain group-hover:scale-105 transition drop-shadow-[0_0_10px_rgba(245,158,11,0.25)]" />
               <div>
-                <span className="text-xl font-black text-slate-100 tracking-tight">
+                <span className="text-xl font-black text-slate-100 tracking-tight inline-block group-hover:scale-110 transition-transform transform origin-left">
                   Cine<span className="text-amber-400">Wiki</span>
                 </span>
                 <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
@@ -35,7 +33,9 @@ export const Footer: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              CineWiki là nền tảng tra cứu điện ảnh & so sánh diễn viên, hỗ trợ phân tích đa chiều dữ liệu box office, điểm TMDB và sự nghiệp diễn viên.
+              {isEn
+                ? 'CineWiki is a modern cinema lookup & actor comparison platform, supporting multi-dimensional box office analytics, TMDB ratings, and career filmographies.'
+                : 'CineWiki là nền tảng tra cứu điện ảnh & so sánh diễn viên, hỗ trợ phân tích đa chiều dữ liệu box office, điểm TMDB và sự nghiệp diễn viên.'}
             </p>
 
             <div className="pt-2 space-y-2">
@@ -60,25 +60,25 @@ export const Footer: React.FC = () => {
           {/* Col 2: Khám Phá */}
           <div className="space-y-3">
             <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider border-l-2 border-amber-400 pl-2">
-              Khám Phá
+              {isEn ? 'Explore' : 'Khám Phá'}
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li>
                 <button onClick={() => navigate('/search')} className="hover:text-amber-300 transition flex items-center space-x-1.5 cursor-pointer">
                   <Search className="w-3.5 h-3.5 text-amber-400/70" />
-                  <span>Lọc & Tìm kiếm Phim</span>
+                  <span>{isEn ? 'Filter & Search Movies' : 'Lọc & Tìm kiếm Phim'}</span>
                 </button>
               </li>
               <li>
                 <button onClick={() => navigate('/actors')} className="hover:text-amber-300 transition flex items-center space-x-1.5 cursor-pointer">
                   <Award className="w-3.5 h-3.5 text-amber-400/70" />
-                  <span>Danh sách Celebs (Xem thêm)</span>
+                  <span>{isEn ? 'Celebs List (View All)' : 'Danh sách Celebs (Xem thêm)'}</span>
                 </button>
               </li>
               <li>
                 <button onClick={() => navigate('/compare')} className="hover:text-amber-300 transition flex items-center space-x-1.5 cursor-pointer">
                   <GitCompare className="w-3.5 h-3.5 text-amber-400/70" />
-                  <span>So sánh Đa chiều</span>
+                  <span>{isEn ? 'Side-by-Side Comparison' : 'So sánh Đa chiều'}</span>
                 </button>
               </li>
             </ul>
@@ -87,23 +87,23 @@ export const Footer: React.FC = () => {
           {/* Col 3: Thể Loại */}
           <div className="space-y-3">
             <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider border-l-2 border-cyan-400 pl-2">
-              Thể Loại Phim
+              {isEn ? 'Movie Genres' : 'Thể Loại Phim'}
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li>
-                <button onClick={() => navigate('/search?genre=Action')} className="hover:text-cyan-300 transition cursor-pointer">Phim Hành Động</button>
+                <button onClick={() => navigate('/search?genre=Action')} className="hover:text-cyan-300 transition cursor-pointer">{isEn ? 'Action Movies' : 'Phim Hành Động'}</button>
               </li>
               <li>
-                <button onClick={() => navigate('/search?genre=Drama')} className="hover:text-cyan-300 transition cursor-pointer">Phim Chính Kịch</button>
+                <button onClick={() => navigate('/search?genre=Drama')} className="hover:text-cyan-300 transition cursor-pointer">{isEn ? 'Drama Movies' : 'Phim Chính Kịch'}</button>
               </li>
               <li>
-                <button onClick={() => navigate('/search?genre=Sci-Fi')} className="hover:text-cyan-300 transition cursor-pointer">Khoa Học Viễn Tưởng</button>
+                <button onClick={() => navigate('/search?genre=Sci-Fi')} className="hover:text-cyan-300 transition cursor-pointer">{isEn ? 'Sci-Fi & Fantasy' : 'Khoa Học Viễn Tưởng'}</button>
               </li>
               <li>
-                <button onClick={() => navigate('/search?genre=Horror')} className="hover:text-cyan-300 transition cursor-pointer">Phim Kinh Dị</button>
+                <button onClick={() => navigate('/search?genre=Horror')} className="hover:text-cyan-300 transition cursor-pointer">{isEn ? 'Horror Movies' : 'Phim Kinh Dị'}</button>
               </li>
               <li>
-                <button onClick={() => navigate('/search?genre=Comedy')} className="hover:text-cyan-300 transition cursor-pointer">Phim Hài Hước</button>
+                <button onClick={() => navigate('/search?genre=Comedy')} className="hover:text-cyan-300 transition cursor-pointer">{isEn ? 'Comedy Movies' : 'Phim Hài Hước'}</button>
               </li>
             </ul>
           </div>
@@ -111,23 +111,23 @@ export const Footer: React.FC = () => {
           {/* Col 4: Quốc Gia */}
           <div className="space-y-3">
             <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider border-l-2 border-purple-400 pl-2">
-              Quốc Gia
+              {isEn ? 'Countries' : 'Quốc Gia'}
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li>
-                <button onClick={() => navigate('/search?country=VN')} className="hover:text-purple-300 transition cursor-pointer">Phim Việt Nam</button>
+                <button onClick={() => navigate('/search?country=VN')} className="hover:text-purple-300 transition cursor-pointer">{isEn ? 'Vietnamese Cinema' : 'Phim Việt Nam'}</button>
               </li>
               <li>
-                <button onClick={() => navigate('/search?country=US')} className="hover:text-purple-300 transition cursor-pointer">Điện ảnh Mỹ (Hollywood)</button>
+                <button onClick={() => navigate('/search?country=US')} className="hover:text-purple-300 transition cursor-pointer">{isEn ? 'Hollywood (USA)' : 'Điện ảnh Mỹ (Hollywood)'}</button>
               </li>
               <li>
-                <button onClick={() => navigate('/search?country=KR')} className="hover:text-purple-300 transition cursor-pointer">Phim Hàn Quốc</button>
+                <button onClick={() => navigate('/search?country=KR')} className="hover:text-purple-300 transition cursor-pointer">{isEn ? 'South Korean Cinema' : 'Phim Hàn Quốc'}</button>
               </li>
               <li>
-                <button onClick={() => navigate('/search?country=JP')} className="hover:text-purple-300 transition cursor-pointer">Phim Nhật Bản</button>
+                <button onClick={() => navigate('/search?country=JP')} className="hover:text-purple-300 transition cursor-pointer">{isEn ? 'Japanese Cinema' : 'Phim Nhật Bản'}</button>
               </li>
               <li>
-                <button onClick={() => navigate('/search?country=CN')} className="hover:text-purple-300 transition cursor-pointer">Phim Trung Quốc</button>
+                <button onClick={() => navigate('/search?country=CN')} className="hover:text-purple-300 transition cursor-pointer">{isEn ? 'Chinese Cinema' : 'Phim Trung Quốc'}</button>
               </li>
             </ul>
           </div>
@@ -137,11 +137,15 @@ export const Footer: React.FC = () => {
         <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <span>Dữ liệu điện ảnh được cung cấp trực tiếp bởi TMDB API. Không lưu trữ nội dung vi phạm bản quyền.</span>
+            <span>
+              {isEn
+                ? 'Movie and actor data provided directly by TMDB API. No copyrighted media hosted.'
+                : 'Dữ liệu điện ảnh được cung cấp trực tiếp bởi TMDB API. Không lưu trữ nội dung vi phạm bản quyền.'}
+            </span>
           </div>
 
           <div className="flex items-center space-x-1">
-            <span>Made with love for Cinephiles Worldwide &copy; 2026 CineWiki</span>
+            <span>Made by Tran Dinh Quoc Hung &copy; 2026 CineWiki</span>
           </div>
         </div>
       </div>

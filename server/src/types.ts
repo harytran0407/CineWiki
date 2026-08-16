@@ -72,6 +72,7 @@ export interface Movie {
   vote_count: number;
   imdb_score?: number;
   weighted_rating?: number;
+  popularity?: number;
   rotten_tomatoes?: {
     tomatometer: number;
     audience_score: number;
