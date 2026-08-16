@@ -276,7 +276,7 @@ export const SearchPage: React.FC = () => {
   const activeCountry = searchParams.get('country') || country;
   const activeYear = searchParams.get('year') || year;
 
-  let pageTitle = isEn ? 'Explore & Filter Movies' : 'Khám Phá & Lọc Điện Ảnh';
+  let pageTitle = isEn ? 'Explore Movies' : 'Khám Phá Điện Ảnh';
   let pageSub = isEn ? 'Combine keyword search with multiple filters simultaneously' : 'Kết hợp tìm kiếm từ khóa và nhiều điều kiện lọc đồng thời';
 
   if (activeQ) {
@@ -307,7 +307,7 @@ export const SearchPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-100">{pageTitle}</h1>
-            <p className="text-xs text-slate-400">{pageSub}</p>
+            
           </div>
         </div>
 
@@ -338,7 +338,7 @@ export const SearchPage: React.FC = () => {
                 handleExecuteSearch();
               }
             }}
-            placeholder={isEn ? 'Search movie title (e.g. Mai, Oppenheimer, Avatar...)' : 'Gõ tên phim tìm kiếm (ví dụ: Mai, Oppenheimer, Avatar, Bố Già...)'}
+            placeholder={isEn ? 'Search movie title here...' : 'Gõ tên phim ở đây nè....'}
             className="flex-1 bg-white text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none pl-2 pr-3"
           />
           {searchTerm && (
