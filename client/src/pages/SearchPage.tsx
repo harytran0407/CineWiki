@@ -324,7 +324,7 @@ export const SearchPage: React.FC = () => {
 
       {/* Primary Keyword Search Bar — Full Width (Matching Filter Box) with Live Suggestions */}
       <div ref={searchContainerRef} className="relative w-full">
-        <div className="w-full rounded-lg p-2.5 border border-amber-500/40 shadow-xl flex items-center justify-between bg-white relative">
+        <div className="w-full rounded-lg p-1.5 border border-amber-500/40 shadow-xl flex items-center justify-between bg-white relative gap-2">
           <input
             type="text"
             value={searchTerm}
@@ -339,16 +339,15 @@ export const SearchPage: React.FC = () => {
               }
             }}
             placeholder={isEn ? 'Search movie title (e.g. Mai, Oppenheimer, Avatar...)' : 'Gõ tên phim tìm kiếm (ví dụ: Mai, Oppenheimer, Avatar, Bố Già...)'}
-            className="flex-1 bg-white text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none pl-2 pr-10"
+            className="flex-1 bg-white text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none pl-2 pr-3"
           />
-          <SearchIcon className="w-4 h-4 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           {searchTerm && (
             <button
               onClick={() => {
                 setSearchTerm('');
                 setShowSuggestions(false);
               }}
-              className="text-slate-400 hover:text-slate-200 transition p-1"
+              className="text-slate-400 hover:text-slate-600 transition p-1"
             >
               <X className="w-4 h-4" />
             </button>
@@ -358,9 +357,11 @@ export const SearchPage: React.FC = () => {
               setShowSuggestions(false);
               handleExecuteSearch();
             }}
-            className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-md transition active:scale-95 cursor-pointer flex-shrink-0"
+            title={isEn ? 'Search' : 'Tìm kiếm'}
+            aria-label={isEn ? 'Search' : 'Tìm kiếm'}
+            className="p-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 rounded-md shadow-md transition active:scale-95 cursor-pointer flex-shrink-0 flex items-center justify-center"
           >
-            {isEn ? 'Search' : 'Tìm kiếm'}
+            <SearchIcon className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
 

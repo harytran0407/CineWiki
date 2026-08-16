@@ -35,7 +35,7 @@ export const Footer: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              CineWiki là nền tảng tra cứu điện ảnh & so sánh diễn viên hàng đầu, hỗ trợ phân tích đa chiều dữ liệu box office, giải thưởng Oscar và sự nghiệp diễn viên.
+              CineWiki là nền tảng tra cứu điện ảnh & so sánh diễn viên, hỗ trợ phân tích đa chiều dữ liệu box office, điểm TMDB và sự nghiệp diễn viên.
             </p>
 
             <div className="pt-2 space-y-2">
@@ -72,7 +72,7 @@ export const Footer: React.FC = () => {
               <li>
                 <button onClick={() => navigate('/actors')} className="hover:text-amber-300 transition flex items-center space-x-1.5 cursor-pointer">
                   <Award className="w-3.5 h-3.5 text-amber-400/70" />
-                  <span>Diễn viên Thịnh hành</span>
+                  <span>Danh sách Celebs (Xem thêm)</span>
                 </button>
               </li>
               <li>

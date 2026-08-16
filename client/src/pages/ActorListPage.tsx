@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Actor } from '../types';
+import { Actor, formatDepartmentRole } from '../types';
 import { ImgWithFallback } from '../components/ImgWithFallback';
 import { EmptyState } from '../components/EmptyState';
-import { Search, Users, Trophy, Film, DollarSign, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, Users, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 export const ActorListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,21 +12,18 @@ export const ActorListPage: React.FC = () => {
   const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
 
+  const deptParam = searchParams.get('dept');
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'oscars' | 'movies' | 'boxoffice' | 'trending'>(() => {
-    const cat = searchParams.get('category');
-    if (cat === 'oscars' || cat === 'boxoffice' || cat === 'all') return cat;
-    return 'all';
-  });
+  const [genderFilter, setGenderFilter] = useState<'all' | '1' | '2'>('all');
   const [countryFilter, setCountryFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
 
   useEffect(() => {
-    const cat = searchParams.get('category');
-    if (cat === 'oscars' || cat === 'boxoffice' || cat === 'all') {
-      setCategoryFilter(cat);
-      setPage(1);
+    if (deptParam) {
+      setDepartmentFilter(deptParam);
     }
-  }, [searchParams]);
+  }, [deptParam]);
 
   const [actors, setActors] = useState<Actor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,7 +32,7 @@ export const ActorListPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(10);
 
-  // Main data fetch handler - 100% Dynamic from TMDB API with EXACTLY 20 actors per page
+  // Main data fetch handler - 100% Dynamic from TMDB API
   useEffect(() => {
     const fetchActorsData = async () => {
       setLoading(true);
@@ -53,9 +50,9 @@ export const ActorListPage: React.FC = () => {
             setTotalPages(1);
           }
         } else {
-          // Popular / Country / Category Filtered Actors from TMDB API with server-side pagination (20 per page)
+          // Popular / Country / Gender / Department Filtered Actors directly from TMDB API
           const res = await fetch(
-            `/api/actors/popular?lang=${langParam}&page=${page}&country=${encodeURIComponent(countryFilter)}&category=${encodeURIComponent(categoryFilter)}`
+            `/api/actors/popular?lang=${langParam}&page=${page}&country=${encodeURIComponent(countryFilter)}&gender=${genderFilter}&department=${encodeURIComponent(departmentFilter)}`
           );
           const data = await res.json();
           if (data.success && data.data) {
@@ -71,43 +68,22 @@ export const ActorListPage: React.FC = () => {
     };
 
     fetchActorsData();
-  }, [searchTerm, categoryFilter, countryFilter, page, i18n.language, isEn]);
+  }, [searchTerm, genderFilter, countryFilter, departmentFilter, page, i18n.language, isEn]);
 
   const handleResetFilters = () => {
     setSearchTerm('');
-    setCategoryFilter('all');
+    setGenderFilter('all');
     setCountryFilter('all');
+    setDepartmentFilter('all');
     setPage(1);
   };
 
-  const displayedActors = actors;
+  const displayedActors = [...actors]
+    .filter((a) => a.profile_path && a.profile_path.trim() !== '')
+    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 
-  const hasActiveFilters = searchTerm || categoryFilter !== 'all' || countryFilter !== 'all';
+  const hasActiveFilters = searchTerm || genderFilter !== 'all' || countryFilter !== 'all' || departmentFilter !== 'all';
 
-  // Helper to format full birth date & death date centered under name (100% Dynamic from TMDB API)
-  const formatBirthInfo = (actor: Actor) => {
-    if (actor.birthday && actor.birthday !== '1980-01-01' && actor.birthday.trim().length > 0) {
-      if (actor.deathday) {
-        return `${actor.birthday} — ${actor.deathday}`;
-      }
-      return actor.birthday;
-    }
-    if (actor.debut_year) {
-      return `${actor.debut_year}`;
-    }
-    if (actor.place_of_birth && actor.place_of_birth !== 'International') {
-      return actor.place_of_birth;
-    }
-    return '';
-  };
-
-  // Helper for Oscar count badge (100% Dynamic from TMDB API Awards Data)
-  const getOscarBadgeCount = (actor: Actor): number => {
-    const oscarAwards = actor.awards?.filter(
-      (a) => a.name.toLowerCase().includes('oscar') && a.status === 'won'
-    );
-    return oscarAwards ? oscarAwards.length : 0;
-  };
 
   return (
     <div className="space-y-8 pb-16">
@@ -119,7 +95,7 @@ export const ActorListPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-100">
-              {isEn ? 'List of Actors' : 'Danh Sách Diễn Viên'}
+              {isEn ? 'List of Celebs' : 'Danh Sách Celebs'}
             </h1>
 
           </div>
@@ -136,7 +112,7 @@ export const ActorListPage: React.FC = () => {
         )}
       </div>
 
-      {/* Combined Search & Filter Bar (NO HARDCODED EMOJI ICONS) */}
+      {/* Combined Search & Filter Bar */}
       <div className="glass-panel rounded-3xl p-4 sm:p-5 border border-amber-500/30 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/90">
         {/* Keyword Search Bar */}
         <div className="relative flex-1 w-full">
@@ -168,22 +144,40 @@ export const ActorListPage: React.FC = () => {
           )}
         </div>
 
-        {/* Category & Country Select Dropdowns */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto">
-          {/* Category Select Box */}
-          <div className="flex-1 sm:flex-initial min-w-[180px]">
+        {/* Role / Gender / Country Select Dropdowns */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          {/* Department Select Box */}
+          <div className="flex-1 sm:flex-initial min-w-[140px]">
             <select
-              value={categoryFilter}
+              value={departmentFilter}
               onChange={(e) => {
                 setSearchTerm('');
-                setCategoryFilter(e.target.value as any);
+                setDepartmentFilter(e.target.value);
                 setPage(1);
               }}
               className="w-full py-2.5 px-3 bg-slate-950/80 border border-slate-800 focus:border-amber-400/50 rounded-2xl text-xs font-semibold text-slate-100 focus:outline-none cursor-pointer transition shadow-inner"
             >
-              <option value="all">{isEn ? 'Most Popular' : 'Thịnh hành nhất'}</option>
-              <option value="oscars">{isEn ? 'Most Oscar Winners' : 'Nhiều Oscar nhất'}</option>
-              <option value="boxoffice">{isEn ? 'Top Box Office Stars' : 'Doanh thu cao nhất'}</option>
+              <option value="all">{isEn ? 'All Roles' : 'Tất cả vai trò'}</option>
+              <option value="Acting">{isEn ? 'Actor' : 'Diễn viên'}</option>
+              <option value="Directing">{isEn ? 'Director' : 'Đạo diễn'}</option>
+              <option value="Writing">{isEn ? 'Writer' : 'Biên kịch'}</option>
+            </select>
+          </div>
+
+          {/* Gender Select Box */}
+          <div className="flex-1 sm:flex-initial min-w-[140px]">
+            <select
+              value={genderFilter}
+              onChange={(e) => {
+                setSearchTerm('');
+                setGenderFilter(e.target.value as any);
+                setPage(1);
+              }}
+              className="w-full py-2.5 px-3 bg-slate-950/80 border border-slate-800 focus:border-amber-400/50 rounded-2xl text-xs font-semibold text-slate-100 focus:outline-none cursor-pointer transition shadow-inner"
+            >
+              <option value="all">{isEn ? 'All Genders' : 'Tất cả giới tính'}</option>
+              <option value="1">{isEn ? 'Female' : 'Nữ'}</option>
+              <option value="2">{isEn ? 'Male' : 'Nam'}</option>
             </select>
           </div>
 
@@ -215,7 +209,7 @@ export const ActorListPage: React.FC = () => {
       {/* Results Header */}
       <div className="flex items-center justify-between text-xs text-slate-400">
         <span>
-          {isEn ? `Showing ${displayedActors.length} famous actors` : `Hiển thị ${displayedActors.length} diễn viên nổi tiếng`}
+          {isEn ? `Showing ${displayedActors.length} famous personalities` : `Hiển thị ${displayedActors.length} gương mặt điện ảnh nổi tiếng`}
         </span>
       </div>
 
@@ -232,15 +226,14 @@ export const ActorListPage: React.FC = () => {
           description={
             searchTerm
               ? (isEn ? `No actors matching keyword "${searchTerm}".` : `Không tìm thấy diễn viên nào khớp với từ khóa "${searchTerm}".`)
-              : (isEn ? 'Try selecting a different country or category filter.' : 'Thử chọn quốc gia hoặc danh mục khác.')
+              : (isEn ? 'Try selecting a different filter combination.' : 'Thử nới lỏng hoặc thay đổi bộ lọc.')
           }
-          actionLabel={isEn ? 'Reset Search' : 'Đặt lại tìm kiếm'}
+          actionLabel={isEn ? 'Reset Filters' : 'Đặt lại bộ lọc'}
           onAction={handleResetFilters}
         />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-3.5 sm:gap-6">
           {displayedActors.map((actor) => {
-            const oscarCount = getOscarBadgeCount(actor);
             return (
               <div
                 key={actor.id}
@@ -255,41 +248,22 @@ export const ActorListPage: React.FC = () => {
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
 
-                  {/* Country Badge (Clean Text, ONLY if Verified from TMDB place_of_birth) */}
+                  {/* Country Badge */}
                   {actor.nationality && (
                     <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/80 text-[10px] font-bold text-amber-300 border border-amber-500/30 shadow-md">
                       {actor.nationality}
                     </div>
                   )}
-
-                  {/* Oscar Category Sort Badge (Dynamic from TMDB API Awards) */}
-                  {categoryFilter === 'oscars' && oscarCount > 0 && (
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/85 backdrop-blur-md text-[10px] font-bold text-amber-400 border border-amber-400/40 flex items-center space-x-1 shadow-md">
-                      <Trophy className="w-3 h-3 text-amber-400 inline" />
-                      <span>{oscarCount} {isEn ? (oscarCount > 1 ? 'Oscars' : 'Oscar') : 'Oscar'}</span>
-                    </div>
-                  )}
-
-                  {categoryFilter === 'boxoffice' && (
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/85 backdrop-blur-md text-[10px] font-bold text-emerald-400 border border-emerald-400/40 flex items-center space-x-1 shadow-md">
-                      <DollarSign className="w-3 h-3 text-emerald-400 inline" />
-                      <span>{actor.total_box_office || '$5.0 Tỷ USD'}</span>
-                    </div>
-                  )}
                 </div>
 
-                {/* Card Footer Details - CENTERED NAME & RAW BIRTH DATE DYNAMIC FROM TMDB API */}
-                <div className="p-3.5 flex flex-col items-center justify-center text-center space-y-1 bg-slate-900/90 border-t border-slate-800/80">
+                {/* Card Footer Details */}
+                <div className="p-3.5 flex flex-col items-center justify-center text-center bg-slate-900/90 border-t border-slate-800/80">
                   <h3 className="text-xs font-bold text-slate-100 group-hover:text-amber-300 transition truncate w-full text-center">
                     {actor.name}
                   </h3>
-
-                  {/* Raw Birth date centered under name */}
-                  {formatBirthInfo(actor) && (
-                    <p className="text-[10px] text-slate-400 truncate font-medium text-center w-full">
-                      {formatBirthInfo(actor)}
-                    </p>
-                  )}
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-medium truncate w-full">
+                    {formatDepartmentRole(actor.known_for_department, isEn, actor.gender)}
+                  </p>
                 </div>
               </div>
             );
@@ -297,7 +271,7 @@ export const ActorListPage: React.FC = () => {
         </div>
       )}
 
-      {/* Pagination Controls - ALWAYS VISIBLE AT BOTTOM FOR ALL FILTERS */}
+      {/* Pagination Controls */}
       <div className="flex items-center justify-center space-x-3 pt-6 border-t border-slate-800/80">
         <button
           onClick={() => {

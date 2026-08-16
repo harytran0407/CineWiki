@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Movie, Actor } from '../types';
+import { Movie, Actor, formatDepartmentRole } from '../types';
 import { ImgWithFallback } from '../components/ImgWithFallback';
 import { useTranslation } from 'react-i18next';
 import { getMovieTitle } from '../utils/langUtils';
@@ -331,6 +331,14 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
               <p className="text-xs text-slate-400">{t('home.actorsSub') || (isEn ? 'Top leading actors driving global box office successes' : 'Các diễn viên hàng đầu đang dẫn dắt phòng vé toàn cầu')}</p>
             </div>
           </div>
+
+          <button
+            onClick={() => navigate('/actors')}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500/40 text-purple-400 hover:text-purple-300 text-xs font-bold transition cursor-pointer flex items-center space-x-1 shadow-md"
+          >
+            <span>{t('home.viewAll') || (isEn ? 'View All' : 'Xem thêm')}</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {loadingActors ? (
@@ -368,7 +376,7 @@ export const HomePage: React.FC<HomePageProps> = ({ userFollowIds, onToggleFollo
                     <h3 className="text-sm font-bold text-slate-100 group-hover:text-purple-300 transition">
                       {actor.name}
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{actor.known_for_department}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{formatDepartmentRole(actor.known_for_department, isEn, actor.gender)}</p>
                   </div>
                 </div>
               );

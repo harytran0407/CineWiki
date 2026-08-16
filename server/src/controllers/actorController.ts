@@ -7,9 +7,15 @@ export const getPopularActors = async (req: Request, res: Response) => {
     const lang = (req.query.lang as string) || 'vi-VN';
     const page = parseInt(req.query.page as string, 10) || 1;
     const country = req.query.country as string;
-    const category = req.query.category as string;
-    const actors = await TMDBService.getPopularActors(lang, page, country, category);
-    return res.json({ success: true, data: actors, page, total_pages: 20 });
+    const gender = req.query.gender as string;
+    const department = req.query.department as string;
+
+    const result = await TMDBService.getPopularActors(lang, page, {
+      countryFilter: country,
+      genderFilter: gender,
+      departmentFilter: department
+    });
+    return res.json({ success: true, data: result.actors, page, total_pages: result.total_pages });
   } catch (error) {
     return res.status(500).json({ success: false, message: (error as Error).message });
   }

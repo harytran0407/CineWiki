@@ -67,6 +67,12 @@ export const AIChatbot: React.FC = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
+  useEffect(() => {
+    const handleOpenChat = () => setIsOpen(true);
+    window.addEventListener('open-cinebot-chat', handleOpenChat);
+    return () => window.removeEventListener('open-cinebot-chat', handleOpenChat);
+  }, []);
+
   // Detect movie or actor context from URL
   const getContextFromUrl = (): { type: 'movie' | 'actor'; id: string } | null => {
     const movieMatch = location.pathname.match(/^\/movie\/(\d+)/);
@@ -285,15 +291,27 @@ export const AIChatbot: React.FC = () => {
     }
   };
 
+  // Lock body scroll when chatbot window is open on mobile
+  useEffect(() => {
+    if (isOpen && window.innerWidth < 640) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   const activeFollowUps = [...messages].reverse().find((m) => m.sender === 'ai' && m.followUpQuestions && m.followUpQuestions.length > 0)?.followUpQuestions || initialFollowUps;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 font-sans">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 font-sans left-4 sm:left-auto pointer-events-none flex justify-end">
       {/* Floating Trigger Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="group px-4 py-3 bg-gradient-to-r from-amber-500 via-amber-600 to-cyan-500 hover:from-amber-400 hover:to-cyan-400 text-slate-950 font-black rounded-full shadow-2xl flex items-center space-x-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer border border-amber-300/40"
+          className="pointer-events-auto group px-4 py-3 bg-gradient-to-r from-amber-500 via-amber-600 to-cyan-500 hover:from-amber-400 hover:to-cyan-400 text-slate-950 font-black rounded-full shadow-2xl flex items-center space-x-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer border border-amber-300/40"
         >
           <div className="relative">
             <Bot className="w-5 h-5 fill-slate-950" />
@@ -306,7 +324,7 @@ export const AIChatbot: React.FC = () => {
 
       {/* Chatbot Window Drawer */}
       {isOpen && (
-        <div className="glass-panel-glow w-[360px] sm:w-[400px] h-[540px] rounded-3xl border border-amber-500/40 shadow-2xl flex flex-col overflow-hidden animate-fade-in bg-slate-950/95 backdrop-blur-xl">
+        <div className="pointer-events-auto glass-panel-glow w-full sm:w-[400px] h-[calc(100dvh-5rem)] max-h-[540px] rounded-3xl border border-amber-500/40 shadow-2xl flex flex-col overflow-hidden animate-fade-in bg-slate-950/95 backdrop-blur-xl">
           {/* Window Header */}
           <div className="p-4 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/40 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center space-x-3">

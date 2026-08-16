@@ -38,6 +38,7 @@ export interface Actor {
   total_box_office?: string;
   highest_grossing_movie?: string;
   landmark_works?: string[];
+  gender?: number;
   popularity?: number;
   known_for?: { id: number; title?: string; name?: string }[];
   awards?: Award[];

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Actor } from '../types';
+import { Actor, formatDepartmentRole } from '../types';
 import { CareerTimeline } from '../components/CareerTimeline';
 import { ImgWithFallback } from '../components/ImgWithFallback';
 import { calculateDaysToBirthday } from '../utils/dateUtils';
@@ -229,16 +229,17 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
         self.findIndex((item) => item.name.toLowerCase() === a.name.toLowerCase() && item.year === a.year) === idx
     )
     .sort((a, b) => b.year - a.year);
+  const isDirector = actor.known_for_department?.toLowerCase().includes('directing');
 
   return (
-    <div className="space-y-12 pb-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center space-x-2 text-xs font-semibold text-slate-400 hover:text-amber-300 transition"
+        className="flex items-center space-x-2 text-slate-400 hover:text-amber-400 text-xs font-bold transition group cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>Trở về</span>
+        <span>{isEn ? 'Back' : 'Trở về'}</span>
       </button>
 
       {/* Header Profile Section */}
@@ -252,7 +253,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
             <div>
               <h1 className="text-3xl sm:text-4xl font-black text-slate-100">{actor.name}</h1>
               <p className="text-xs text-amber-400 font-semibold mt-1">
-                {actor.nationality ? `${actor.nationality} • ` : ''}{actor.known_for_department}
+                {actor.nationality ? `${actor.nationality} • ` : ''}{formatDepartmentRole(actor.known_for_department, isEn, actor.gender)}
               </p>
             </div>
 
@@ -263,7 +264,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                 className="py-2.5 px-5 rounded-2xl text-xs font-bold flex items-center space-x-2 bg-gradient-to-r from-amber-500/10 to-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition shadow-lg transform active:scale-95 cursor-pointer"
               >
                 <GitCompare className="w-4 h-4 text-amber-400" />
-                <span>So sánh diễn viên này</span>
+                <span>{isDirector ? (isEn ? 'Compare Directors' : 'So sánh đạo diễn') : (isEn ? 'Compare Actors' : 'So sánh diễn viên')}</span>
               </button>
             </div>
           </div>
@@ -300,18 +301,12 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
               </div>
             )}
 
-            {actor.height && (
-              <div className="flex items-center space-x-2 min-w-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.height') || 'Chiều cao'}:</span>
-                <span className="font-semibold text-slate-100 truncate">{actor.height}</span>
-              </div>
-            )}
-
             {actor.filmography && actor.filmography.length > 0 && (
               <div className="flex items-center space-x-2 min-w-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.totalMovies') || 'Số bộ phim'}:</span>
+                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">
+                  {isDirector ? (isEn ? 'Directed Movies:' : 'Số phim đạo diễn:') : (t('actor.totalMovies') || 'Số bộ phim:')}
+                </span>
                 <span className="font-semibold text-slate-100 truncate">{actor.filmography.length} {t('actor.worksCount') || 'tác phẩm'}</span>
               </div>
             )}
@@ -336,7 +331,9 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
             {actor.total_box_office && (
               <div className="flex items-center space-x-2 min-w-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">{t('actor.totalBoxOffice') || 'Doanh thu đạt được'}:</span>
+                <span className="text-slate-400 whitespace-nowrap flex-shrink-0">
+                  {isDirector ? (isEn ? 'Directed Box Office:' : 'Doanh thu phim đạo diễn:') : (t('actor.totalBoxOffice') || 'Doanh thu đạt được:')}
+                </span>
                 <span className="font-bold text-amber-300 truncate">{actor.total_box_office}</span>
               </div>
             )}
@@ -347,7 +344,9 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
       {/* Detailed Biography */}
       <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold text-slate-100">{t('actor.biography') || 'Tiểu sử và cuộc đời'}</h2>
+          <h2 className="text-xl font-extrabold text-slate-100">
+            {isDirector ? (isEn ? 'Director Biography & Life' : 'Tiểu sử & Sự nghiệp Đạo diễn') : (t('actor.biography') || 'Tiểu sử và cuộc đời')}
+          </h2>
         </div>
 
         <p className="text-sm text-slate-300 leading-relaxed font-normal whitespace-pre-line">
@@ -363,7 +362,9 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
         <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
           <div className="flex items-center space-x-2">
             <Film className="w-5 h-5 text-amber-400" />
-            <h2 className="text-xl font-extrabold text-slate-100">{t('actor.landmarkWorks') || 'Tác phẩm Nổi bật & Cột mốc Sự nghiệp'}</h2>
+            <h2 className="text-xl font-extrabold text-slate-100">
+              {isDirector ? (isEn ? 'Landmark Films' : 'Tác phẩm nổi bật') : (t('actor.landmarkWorks') || 'Tác phẩm Nổi bật')}
+            </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {actor.landmark_works.map((work, idx) => {
@@ -371,6 +372,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
               const matchedFilm = actor.filmography?.find((f) => {
                 const cleanFilmTitle = (f.title || '').toLowerCase();
                 const cleanOrigTitle = (f.original_title || '').toLowerCase();
+                if (!cleanWorkTitle) return false;
                 return (
                   (cleanFilmTitle && (cleanFilmTitle.includes(cleanWorkTitle) || cleanWorkTitle.includes(cleanFilmTitle))) ||
                   (cleanOrigTitle && (cleanOrigTitle.includes(cleanWorkTitle) || cleanWorkTitle.includes(cleanOrigTitle)))
@@ -389,12 +391,12 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                       src={matchedFilm?.poster_path || ''}
                       type="poster"
                       alt={work}
-                      className="w-full h-full object-cover group-hover:scale-105 transition"
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-1.5 mb-1">
-                      <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center text-[10px]">
+                    <div className="flex items-center justify-between space-x-2 mb-1">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-400/10 text-amber-300 border border-amber-400/30">
                         #{idx + 1}
                       </span>
                       {matchedFilm?.vote_average && (
@@ -406,11 +408,9 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                     <h4 className="text-xs font-bold text-slate-100 group-hover:text-amber-300 transition line-clamp-2">
                       {work}
                     </h4>
-                    {matchedFilm?.character && (
-                      <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
-                        Vai: {matchedFilm.character}
-                      </span>
-                    )}
+                    <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
+                      {isDirector ? (isEn ? 'Role: Director' : 'Vai trò: Đạo diễn') : `Vai: ${matchedFilm?.character || 'Chưa có dữ liệu'}`}
+                    </span>
                   </div>
                 </div>
               );
@@ -421,8 +421,34 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
 
       {/* CineBot AI CTA Banner for Awards */}
       <section className="glass-panel-glow rounded-3xl p-5 border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-slate-900/90 to-amber-950/40 text-center shadow-xl">
-        <p className="text-xs sm:text-sm font-extrabold text-amber-300 flex items-center justify-center space-x-2">
-          <span>{i18n.language?.startsWith('en') ? 'Want to know more information? Use CineBot AI!' : 'Muốn tìm hiểu thêm về các giải thưởng? Hãy sử dụng CineBot AI!'}</span>
+        <p className="text-xs sm:text-sm font-semibold text-amber-300 flex items-center justify-center space-x-2">
+          <span>
+            {i18n.language?.startsWith('en') ? (
+              <>
+                Want to know more about this {isDirector ? 'director' : 'actor'}? Use{' '}
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event('open-cinebot-chat'))}
+                  className="underline hover:text-amber-100 font-extrabold cursor-pointer text-amber-300 transition"
+                >
+                  CineBot AI
+                </button>
+                !
+              </>
+            ) : (
+              <>
+                Muốn tìm hiểu thêm về sự nghiệp của {isDirector ? 'đạo diễn' : 'diễn viên'} này? Hãy sử dụng{' '}
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event('open-cinebot-chat'))}
+                  className="underline hover:text-amber-100 cursor-pointer font-extrabold text-amber-300 transition"
+                >
+                  CineBot AI
+                </button>{' '}
+                nhé!
+              </>
+            )}
+          </span>
         </p>
       </section>
 
@@ -483,7 +509,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                           <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <h4 className="text-xs font-bold text-slate-100 truncate">{act.name}</h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{act.known_for_department || (isEn ? 'Acting' : 'Diễn viên')}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{formatDepartmentRole(act.known_for_department, isEn, act.gender)}</p>
                           </div>
                           <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">{isEn ? 'Compare' : 'So sánh'}</span>
                         </div>
@@ -507,7 +533,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                         <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <h4 className="text-xs font-bold text-slate-100 truncate">{act.name}</h4>
-                          <p className="text-[10px] text-slate-400 mt-0.5">{act.known_for_department || (isEn ? 'Acting' : 'Diễn viên')}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{formatDepartmentRole(act.known_for_department, isEn, act.gender)}</p>
                         </div>
                         <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">{isEn ? 'Compare' : 'So sánh'}</span>
                       </div>

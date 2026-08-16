@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NotificationDrawer } from './NotificationDrawer';
-import { Movie, Actor, Notification, User } from '../types';
+import { Movie, Actor, Notification, User, formatDepartmentRole } from '../types';
 import { useTranslation } from 'react-i18next';
 import { getMovieTitle } from '../utils/langUtils';
 import { Film, Search, ChevronDown, Shuffle, Heart, Bell, User as UserIcon, LogOut, Globe, Menu, X } from 'lucide-react';
@@ -254,7 +254,7 @@ export const Header: React.FC<HeaderProps> = ({
                       <img src={a.profile_path} alt={a.name} className="w-9 h-9 rounded-full object-cover border border-slate-700" />
                       <div>
                         <h4 className="text-xs font-bold text-slate-100">{a.name}</h4>
-                        <span className="text-[10px] text-slate-400">{a.known_for_department}</span>
+                        <span className="text-[10px] text-slate-400">{formatDepartmentRole(a.known_for_department, isEn, a.gender)}</span>
                       </div>
                     </div>
                   ))}
@@ -353,7 +353,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* ③ Diễn viên Dropdown */}
+          {/* ③ Celebs Dropdown Menu */}
           <div ref={actorMenuRef} className="relative">
             <button
               onClick={() => {
@@ -361,10 +361,11 @@ export const Header: React.FC<HeaderProps> = ({
                 setShowGenreMenu(false);
                 setShowCountryMenu(false);
               }}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1 transition cursor-pointer ${isActive('/actors')
-                ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold'
-                : 'text-slate-200 hover:text-amber-400 hover:bg-slate-900/80'
-                }`}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1 transition cursor-pointer ${
+                location.pathname.startsWith('/actors')
+                  ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold'
+                  : 'text-slate-200 hover:text-amber-400 hover:bg-slate-900/80'
+              }`}
             >
               <span>{t('nav.actors')}</span>
               <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition transform ${showActorMenu ? 'rotate-180 text-amber-400' : ''}`} />
@@ -374,29 +375,38 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => {
                     setShowActorMenu(false);
-                    navigate('/actors?category=all');
+                    navigate('/actors');
                   }}
                   className="w-full text-[11px] text-left px-3 py-2 rounded-xl text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition font-medium cursor-pointer"
                 >
-                  {isEn ? 'Most Popular' : 'Thịnh hành nhất'}
+                  {isEn ? 'All Roles' : 'Tất cả vai trò'}
                 </button>
                 <button
                   onClick={() => {
                     setShowActorMenu(false);
-                    navigate('/actors?category=oscars');
+                    navigate('/actors?dept=Acting');
                   }}
                   className="w-full text-[11px] text-left px-3 py-2 rounded-xl text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition font-medium cursor-pointer"
                 >
-                  {isEn ? 'Most Oscar Winners' : 'Nhiều Oscar nhất'}
+                  {isEn ? 'Actor' : 'Diễn viên'}
                 </button>
                 <button
                   onClick={() => {
                     setShowActorMenu(false);
-                    navigate('/actors?category=boxoffice');
+                    navigate('/actors?dept=Directing');
                   }}
                   className="w-full text-[11px] text-left px-3 py-2 rounded-xl text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition font-medium cursor-pointer"
                 >
-                  {isEn ? 'Top Box Office Stars' : 'Doanh thu cao nhất'}
+                  {isEn ? 'Director' : 'Đạo diễn'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowActorMenu(false);
+                    navigate('/actors?dept=Writing');
+                  }}
+                  className="w-full text-[11px] text-left px-3 py-2 rounded-xl text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 transition font-medium cursor-pointer"
+                >
+                  {isEn ? 'Writer' : 'Biên kịch'}
                 </button>
               </div>
             )}
@@ -531,7 +541,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Mobile Actors Accordion */}
+          {/* Mobile Celebs Accordion */}
           <div className="space-y-1 pt-2 border-t border-slate-800/80">
             <button
               onClick={() => setShowMobileActors(!showMobileActors)}
@@ -548,29 +558,38 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
-                    navigate('/actors?category=all');
+                    navigate('/actors');
                   }}
                   className="text-xs text-slate-200 hover:text-amber-400 font-medium text-left py-2 px-2.5 hover:bg-slate-900/60 rounded-xl transition cursor-pointer"
                 >
-                  {isEn ? 'Most Popular' : 'Thịnh hành nhất'}
+                  {isEn ? 'All Roles' : 'Tất cả vai trò'}
                 </button>
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
-                    navigate('/actors?category=oscars');
+                    navigate('/actors?dept=Acting');
                   }}
                   className="text-xs text-slate-200 hover:text-amber-400 font-medium text-left py-2 px-2.5 hover:bg-slate-900/60 rounded-xl transition cursor-pointer"
                 >
-                  {isEn ? 'Most Oscar Winners' : 'Nhiều Oscar nhất'}
+                  {isEn ? 'Actor' : 'Diễn viên'}
                 </button>
                 <button
                   onClick={() => {
                     setShowMobileMenu(false);
-                    navigate('/actors?category=boxoffice');
+                    navigate('/actors?dept=Directing');
                   }}
                   className="text-xs text-slate-200 hover:text-amber-400 font-medium text-left py-2 px-2.5 hover:bg-slate-900/60 rounded-xl transition cursor-pointer"
                 >
-                  {isEn ? 'Top Box Office Stars' : 'Doanh thu cao nhất'}
+                  {isEn ? 'Director' : 'Đạo diễn'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    navigate('/actors?dept=Writing');
+                  }}
+                  className="text-xs text-slate-200 hover:text-amber-400 font-medium text-left py-2 px-2.5 hover:bg-slate-900/60 rounded-xl transition cursor-pointer"
+                >
+                  {isEn ? 'Writer' : 'Biên kịch'}
                 </button>
               </div>
             )}

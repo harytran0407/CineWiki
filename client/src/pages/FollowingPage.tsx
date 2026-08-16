@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Actor, Notification, User as UserType } from '../types';
+import { Actor, Notification, User as UserType, formatDepartmentRole } from '../types';
 import { ImgWithFallback } from '../components/ImgWithFallback';
 import { calculateDaysToBirthday } from '../utils/dateUtils';
 import { Heart, Calendar, Cake, Film, Award, Sparkles, UserX, Trash2, ArrowRight } from 'lucide-react';
@@ -106,7 +106,7 @@ export const FollowingPage: React.FC<FollowingPageProps> = ({
                       >
                         {actor.name}
                       </h3>
-                      <p className="text-xs text-slate-400">{actor.known_for_department}</p>
+                      <p className="text-xs text-slate-400">{formatDepartmentRole(actor.known_for_department, false, actor.gender)}</p>
                     </div>
                     <button
                       onClick={() => onToggleFollow(actor.id)}

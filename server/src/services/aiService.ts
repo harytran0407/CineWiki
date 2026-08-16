@@ -36,9 +36,8 @@ export class AIService {
     const openaiKey = process.env.OPENAI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    const prompt = `Translate and refine the following text into elegant, professional ${
-      targetLanguage === 'vi' ? 'Vietnamese' : 'English'
-    } without adding any disclaimers or prefix metadata (keep concise):\n\n"${text}"`;
+    const prompt = `Translate and refine the following text into elegant, professional ${targetLanguage === 'vi' ? 'Vietnamese' : 'English'
+      } without adding any disclaimers or prefix metadata (keep concise):\n\n"${text}"`;
 
     if (geminiKey && !geminiKey.includes('YOUR_GEMINI')) {
       for (const modelName of GEMINI_FAST_MODELS) {
@@ -209,6 +208,45 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
     }
 
     const topWorksStr = actor.landmark_works?.slice(0, 3).join(', ') || actor.name + ' Masterpieces';
+    const isDirectorAi = (actor.known_for_department || '').toLowerCase().includes('directing');
+    const isWriterAi = (actor.known_for_department || '').toLowerCase().includes('writing');
+
+    if (isDirectorAi) {
+      return {
+        biography_vi: `${actor.name} là một trong những nhà đạo diễn kiệt xuất xuất sắc nhất thế giới. Với gia tài điện ảnh trải dài qua nhiều thập kỷ, vị đạo diễn đã chỉ đạo nghệ thuật những siêu phẩm đi cùng năm tháng, khẳng định vị thế đỉnh cao qua các tác phẩm huyền thoại như ${topWorksStr}.`,
+        summary_vi: `${actor.name} là một trong những nhà đạo diễn tiêu biểu với tầm ảnh hưởng sâu rộng của điện ảnh đương đại, ghi dấu ấn đậm nét qua các siêu phẩm chỉ đạo nghệ thuật ${topWorksStr}.`,
+        acting_style_analysis: `Phong cách đạo diễn của ${actor.name} nổi bật bởi tư duy dàn dựng đỉnh cao, khả năng chỉ đạo diễn xuất tinh tế và ngôn ngữ điện ảnh vô cùng độc đáo. Sự tỉ mỉ trong từng khung hình giúp nhà đạo diễn dễ dàng làm chủ cả dòng phim độc lập lẫn các siêu bom tấn kỷ lục.`,
+        milestones: [
+          `Khởi nghiệp chính thức từ năm ${actor.debut_year || 1995} và nhanh chóng khẳng định thực lực qua các tác phẩm đầu tay xuất sắc.`,
+          `Chinh phục giới chuyên môn thế giới với chuỗi kiệt tác chỉ đạo điện ảnh kinh điển.`,
+          `Thiết lập vị thế đạo diễn huyền thoại với danh mục tác phẩm tiêu biểu như ${topWorksStr}.`
+        ],
+        trivia: [
+          `${actor.name} nổi tiếng với sự tỉ mỉ kỷ lục trên phim trường và thường xuyên trực tiếp tham gia hoàn thiện từng khung hình kịch bản.`,
+          `Có phong cách làm phim đặc trưng với tư duy dàn dựng hình ảnh độc đáo và góc quay đậm chất điện ảnh.`
+        ],
+        awards: actor.awards || []
+      };
+    }
+
+    if (isWriterAi) {
+      return {
+        biography_vi: `${actor.name} là một trong những nhà biên kịch tài năng xuất sắc nhất thế giới. Với danh mục kịch bản giàu chiều sâu trải dài qua nhiều thập kỷ, nhà biên kịch đã sáng tạo nên những câu chuyện điện ảnh đi cùng năm tháng như ${topWorksStr}.`,
+        summary_vi: `${actor.name} là nhà biên kịch tiêu biểu của điện ảnh đương đại, ghi dấu ấn đậm nét qua các tác phẩm kịch bản xuất sắc ${topWorksStr}.`,
+        acting_style_analysis: `Tư duy sáng tác kịch bản của ${actor.name} nổi bật bởi cấu trúc câu chuyện chặt chẽ, nghệ thuật xây dựng hội thoại thông minh và chiều sâu tâm lý nhân vật sắc bén.`,
+        milestones: [
+          `Khởi nghiệp chính thức từ năm ${actor.debut_year || 1995} và nhanh chóng tạo tiếng vang với kịch bản góc cạnh.`,
+          `Chinh phục giới chuyên môn với chuỗi tác phẩm có kịch bản xuất sắc nhất.`,
+          `Thiết lập vị thế nhà biên kịch hàng đầu với danh mục tác phẩm như ${topWorksStr}.`
+        ],
+        trivia: [
+          `${actor.name} nổi tiếng với thói quen phác thảo kỹ lưỡng tâm lý nhân vật và bối cảnh lịch sử trước khi hoàn thiện từng dòng thoại.`,
+          `Nhiều kịch bản do ${actor.name} sáng tác đã trở thành giáo trình tham khảo tại các trường đào tạo điện ảnh danh tiếng.`
+        ],
+        awards: actor.awards || []
+      };
+    }
+
     return {
       biography_vi: `${actor.name} là một trong những biểu tượng nghệ thuật xuất sắc nhất thế giới. Với gia tài điện ảnh trải dài qua nhiều thập kỷ, nghệ sĩ đã cống hiến những vai diễn đi cùng năm tháng, khẳng định vị thế đỉnh cao qua các tác phẩm huyền thoại như ${topWorksStr}.`,
       summary_vi: `${actor.name} là một trong những gương mặt tiêu biểu và tầm ảnh hưởng sâu rộng của điện ảnh đương đại, ghi dấu ấn đậm nét qua các siêu phẩm ${topWorksStr}.`,

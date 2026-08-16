@@ -29,27 +29,52 @@ export const ActorNetworkGraph: React.FC<ActorNetworkGraphProps> = ({
     if (!ctx) return;
 
     const setupAndRender = () => {
-      if (!canvas || !canvas.parentElement) return;
-      canvas.width = canvas.parentElement.clientWidth || 800;
-      canvas.height = 450;
-      const width = canvas.width;
-      const height = canvas.height;
+      if (!canvas || !canvas.parentElement) return null;
 
-      const nodes = activeData.nodes.map((node, index) => {
+      const parentWidth = canvas.parentElement.clientWidth || 360;
+      const width = parentWidth;
+      const height = window.innerWidth < 640 ? 320 : 450;
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Scale factor based on canvas width
+      const scale = Math.min(1, Math.max(0.45, width / 700));
+
+      // Dynamic radius with ample margin for labels around the edges
+      const radius = Math.min(width, height) * 0.35;
+
+      const centerNodeRadius = Math.round(26 * scale);
+      const nodeRadius = Math.round(18 * scale);
+
+      const fontSizeCenter = `bold ${Math.max(9, Math.round(12 * scale))}px sans-serif`;
+      const fontSizeNode = `${Math.max(8, Math.round(11 * scale))}px sans-serif`;
+      const fontSizeLink = `${Math.max(7.5, Math.round(10 * scale))}px sans-serif`;
+
+      const fontOffsetCenter = Math.round(36 * scale);
+      const fontOffsetNode = Math.round(28 * scale);
+
+      const nonCenterNodes = activeData.nodes.filter((n) => n.id.toString() !== activeCenterId.toString());
+      const totalNonCenter = Math.max(1, nonCenterNodes.length);
+
+      let nonCenterIndex = 0;
+      const nodes = activeData.nodes.map((node) => {
         if (node.id.toString() === activeCenterId.toString()) {
-          return { ...node, x: width / 2, y: height / 2 };
+          return { ...node, x: width / 2, y: height / 2, radiusSize: centerNodeRadius };
         }
-        const angle = (index / Math.max(1, activeData.nodes.length - 1)) * 2 * Math.PI;
-        const radius = 160;
+        const angle = (nonCenterIndex / totalNonCenter) * 2 * Math.PI - Math.PI / 2;
+        nonCenterIndex++;
         return {
           ...node,
           x: width / 2 + radius * Math.cos(angle),
-          y: height / 2 + radius * Math.sin(angle)
+          y: height / 2 + radius * Math.sin(angle),
+          radiusSize: nodeRadius
         };
       });
 
       ctx.clearRect(0, 0, width, height);
 
+      // Draw links
       activeData.links.forEach((link) => {
         const sourceNode = nodes.find((n) => n.id.toString() === link.source.toString());
         const targetNode = nodes.find((n) => n.id.toString() === link.target.toString());
@@ -59,32 +84,35 @@ export const ActorNetworkGraph: React.FC<ActorNetworkGraphProps> = ({
           ctx.moveTo(sourceNode.x, sourceNode.y);
           ctx.lineTo(targetNode.x, targetNode.y);
           ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
-          ctx.lineWidth = Math.min(link.shared_count || 1, 4);
+          ctx.lineWidth = Math.max(1, Math.round(Math.min(link.shared_count || 1, 4) * scale));
           ctx.stroke();
 
           const midX = (sourceNode.x + targetNode.x) / 2;
           const midY = (sourceNode.y + targetNode.y) / 2;
           ctx.fillStyle = '#94a3b8';
-          ctx.font = '10px sans-serif';
-          ctx.fillText(link.movie_title || '', midX - 20, midY - 5);
+          ctx.font = fontSizeLink;
+          ctx.textAlign = 'center';
+          ctx.fillText(link.movie_title || '', midX, midY - 4);
         }
       });
 
+      // Draw nodes
       nodes.forEach((node) => {
         const isCenter = node.id.toString() === activeCenterId.toString();
+        const r = isCenter ? centerNodeRadius : nodeRadius;
 
         ctx.beginPath();
-        ctx.arc(node.x, node.y, isCenter ? 26 : 18, 0, 2 * Math.PI);
+        ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
         ctx.fillStyle = isCenter ? '#f59e0b' : '#06b6d4';
         ctx.fill();
-        ctx.lineWidth = 3;
+        ctx.lineWidth = Math.max(1.5, Math.round(3 * scale));
         ctx.strokeStyle = '#0f172a';
         ctx.stroke();
 
         ctx.fillStyle = '#f8fafc';
-        ctx.font = isCenter ? 'bold 12px sans-serif' : '11px sans-serif';
+        ctx.font = isCenter ? fontSizeCenter : fontSizeNode;
         ctx.textAlign = 'center';
-        ctx.fillText(node.name, node.x, node.y + (isCenter ? 40 : 32));
+        ctx.fillText(node.name, node.x, node.y + (isCenter ? fontOffsetCenter : fontOffsetNode));
       });
 
       return nodes;
@@ -105,8 +133,9 @@ export const ActorNetworkGraph: React.FC<ActorNetworkGraphProps> = ({
       const clickY = e.clientY - rect.top;
 
       const clicked = currentNodes.find((node) => {
+        const r = (node as any).radiusSize || 20;
         const dist = Math.hypot(node.x - clickX, node.y - clickY);
-        return dist <= 25;
+        return dist <= r + 10;
       });
 
       if (clicked) {
@@ -133,8 +162,8 @@ export const ActorNetworkGraph: React.FC<ActorNetworkGraphProps> = ({
   }
 
   return (
-    <div className="w-full relative glass-panel rounded-3xl p-4 border border-slate-800">
-      <canvas ref={canvasRef} className="w-full h-[450px] cursor-pointer" />
+    <div className="w-full relative glass-panel rounded-3xl p-3 sm:p-4 border border-slate-800 overflow-hidden">
+      <canvas ref={canvasRef} className="w-full cursor-pointer touch-none block" />
     </div>
   );
 };

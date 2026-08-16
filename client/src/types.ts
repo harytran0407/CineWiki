@@ -38,6 +38,7 @@ export interface Actor {
   total_box_office?: string;
   highest_grossing_movie?: string;
   landmark_works?: string[];
+  gender?: number;
   popularity?: number;
   known_for?: { id: number; title?: string; name?: string }[];
   awards?: Award[];
@@ -180,4 +181,57 @@ export interface Follow {
   user_id: string;
   actor_id: number;
   followed_at?: string;
+}
+
+export function formatDepartmentRole(dept?: string, isEn?: boolean, gender?: number): string {
+  if (!dept) return isEn ? 'Actor' : 'Diễn viên';
+
+  const rawParts = dept.split(/[•,/+]+/);
+  if (rawParts.length > 1) {
+    const formattedParts = rawParts
+      .map((p) => formatSingleDepartmentRole(p.trim(), isEn, gender))
+      .filter((v, idx, arr) => v && arr.indexOf(v) === idx);
+    if (formattedParts.length > 0) {
+      return formattedParts.join(' • ');
+    }
+  }
+
+  return formatSingleDepartmentRole(dept, isEn, gender);
+}
+
+function formatSingleDepartmentRole(dept: string, isEn?: boolean, gender?: number): string {
+  const d = dept.toLowerCase().trim();
+
+  if (d.includes('acting') || d.includes('actor') || d.includes('actress')) {
+    if (isEn) {
+      return gender === 1 ? 'Actress' : 'Actor';
+    }
+    return 'Diễn viên';
+  }
+
+  if (d.includes('directing') || d.includes('director')) {
+    return isEn ? 'Director' : 'Đạo diễn';
+  }
+
+  if (d.includes('writing') || d.includes('writer') || d.includes('screenplay')) {
+    return isEn ? 'Writer' : 'Biên kịch';
+  }
+
+  if (d.includes('production') || d.includes('producer')) {
+    return isEn ? 'Producer' : 'Nhà sản xuất';
+  }
+
+  if (d.includes('camera') || d.includes('cinematography')) {
+    return isEn ? 'Cinematographer' : 'Quay phim';
+  }
+
+  if (d.includes('editing') || d.includes('editor')) {
+    return isEn ? 'Editor' : 'Dựng phim';
+  }
+
+  if (d.includes('sound') || d.includes('music')) {
+    return isEn ? 'Sound / Music' : 'Âm thanh / Âm nhạc';
+  }
+
+  return isEn ? 'Artist' : 'Nghệ sĩ';
 }

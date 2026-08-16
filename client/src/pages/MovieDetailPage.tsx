@@ -162,7 +162,7 @@ export const MovieDetailPage: React.FC = () => {
 
               {movie.writer && (
                 <div className="flex items-center space-x-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                  <Film className="w-4 h-4 text-cyan-400" />
+                  <Film className="w-4 h-4 text-amber-400" />
                   <span>{isEn ? 'Writer:' : 'Biên kịch:'} <strong className="text-white">{movie.writer}</strong></span>
                 </div>
               )}
@@ -173,12 +173,12 @@ export const MovieDetailPage: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                <Clock className="w-4 h-4 text-cyan-400" />
+                <Clock className="w-4 h-4 text-amber-400" />
                 <span>{isEn ? 'Runtime:' : 'Thời lượng phim:'} <strong className="text-white">{movie.runtime ? `${movie.runtime} ${isEn ? 'mins' : 'phút'}` : (isEn ? 'N/A' : 'Chưa có dữ liệu')}</strong></span>
               </div>
 
               <div className="flex items-center space-x-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                <Globe className="w-4 h-4 text-emerald-400" />
+                <Globe className="w-4 h-4 text-amber-400" />
                 <span>{isEn ? 'Country:' : 'Quốc gia:'} <strong className="text-white">
                   {(() => {
                     const code = Array.isArray(movie.origin_country) ? movie.origin_country[0] : movie.origin_country;
@@ -236,13 +236,11 @@ export const MovieDetailPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center space-y-1">
                 <span className="text-xs font-bold text-amber-400 block uppercase">{isEn ? 'TMDB Rating' : 'Đánh giá TMDB'}</span>
-                <span className="text-2xl font-black text-amber-300">⭐ {movie.vote_average || 'N/A'}</span>
-                <span className="text-[10px] text-slate-400 block">{isEn ? '10-point scale' : 'Thang điểm 10'}</span>
+                <span className="text-2xl font-black text-amber-300"> {movie.vote_average || 'N/A'} / 10</span>
               </div>
               <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-center space-y-1">
                 <span className="text-xs font-bold text-cyan-400 block uppercase">{isEn ? 'Vote Count' : 'Lượt đánh giá'}</span>
-                <span className="text-2xl font-black text-cyan-300">👥 {movie.vote_count ? movie.vote_count.toLocaleString() : 'N/A'}</span>
-                <span className="text-[10px] text-slate-400 block">{isEn ? 'Verified by TMDB' : 'Xác thực từ TMDB'}</span>
+                <span className="text-2xl font-black text-cyan-300"> {movie.vote_count ? movie.vote_count.toLocaleString() : 'N/A'}</span>
               </div>
             </div>
           </section>
@@ -275,11 +273,34 @@ export const MovieDetailPage: React.FC = () => {
       </div>
 
       {/* ③ Nội dung chi tiết */}
-      <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-3">
-        <h2 className="text-xl font-extrabold text-slate-100">{isEn ? ' Synopsis & Plot' : ' Nội dung phim'}</h2>
-        <p className="text-sm text-slate-300 leading-relaxed font-normal">
-          {movie.overview_vi || movie.overview || (isEn ? 'No plot overview available.' : 'Chưa có thông tin nội dung.')}
-        </p>
+      <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+            <Film className="w-5 h-5 text-amber-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-100">{isEn ? 'Synopsis & Movie Overview' : 'Nội dung & Thông tin chi tiết phim'}</h2>
+            <p className="text-xs text-slate-400">{isEn ? 'Detailed plot, character dynamics & production insights' : 'Chi tiết cốt truyện, dàn nhân vật & góc nhìn sản xuất'}</p>
+          </div>
+        </div>
+
+        <div className="space-y-4 text-sm text-slate-300 leading-relaxed font-normal pt-2">
+          {(movie.overview_vi || movie.overview || (isEn ? 'No plot overview available.' : 'Chưa có thông tin nội dung.'))
+            .split('\n\n')
+            .filter(p => p.trim().length > 0)
+            .map((paragraph, index) => (
+              <div key={index} className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700/80 transition space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90 block">
+                  {index === 0
+                    ? (isEn ? 'Storyline & Premise' : ' Bối cảnh & Cốt truyện chính')
+                    : index === 1
+                      ? (isEn ? 'Main Cast & Characters' : ' Dàn diễn viên & Vai diễn nổi bật')
+                      : (isEn ? 'Production & Artistic Style' : ' Đội ngũ sản xuất & Phong cách nghệ thuật')}
+                </span>
+                <p className="text-sm text-slate-200 leading-relaxed">{paragraph}</p>
+              </div>
+            ))}
+        </div>
       </section>
 
       {/* 🎬 Trailer Section */}
@@ -290,8 +311,7 @@ export const MovieDetailPage: React.FC = () => {
               <Play className="w-5 h-5 text-amber-400 fill-amber-400" />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-slate-100">{isEn ? 'Official Trailer & Teasers' : 'Trailer / Video Giới Thiệu'}</h2>
-              <p className="text-xs text-slate-400">{isEn ? 'Watch official high-definition trailers directly' : 'Xem trực tiếp trailer chính thức chất lượng cao'}</p>
+              <h2 className="text-xl font-extrabold text-slate-100">Official Trailer</h2>
             </div>
           </div>
           <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-black">
@@ -360,8 +380,34 @@ export const MovieDetailPage: React.FC = () => {
 
       {/* ⑥ CineBot AI CTA Banner for Awards */}
       <section className="glass-panel-glow rounded-3xl p-5 border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-slate-900/90 to-amber-950/40 text-center shadow-xl">
-        <p className="text-xs sm:text-sm font-extrabold text-amber-300 flex items-center justify-center space-x-2">
-          <span>{isEn ? 'Want to know more information? Use CineBot AI!' : 'Muốn tìm hiểu thêm về các giải thưởng? Hãy sử dụng CineBot AI!'}</span>
+        <p className="text-xs sm:text-sm font-semibold text-amber-300 flex items-center justify-center space-x-2">
+          <span>
+            {isEn ? (
+              <>
+                Want to know more information? Use{' '}
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event('open-cinebot-chat'))}
+                  className="underline hover:text-amber-100 cursor-pointer font-extrabold text-amber-300 transition"
+                >
+                  CineBot AI
+                </button>
+                !
+              </>
+            ) : (
+              <>
+                Muốn tìm hiểu thêm về bộ phim này? Hãy sử dụng{' '}
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event('open-cinebot-chat'))}
+                  className="underline hover:text-amber-100 cursor-pointer font-extrabold text-amber-300 transition"
+                >
+                  CineBot AI
+                </button>{' '}
+                nhé!
+              </>
+            )}
+          </span>
         </p>
       </section>
 

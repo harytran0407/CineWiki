@@ -8,7 +8,7 @@ const resources = {
       nav: {
         home: "Trang chủ",
         movies: "Phim ảnh",
-        actors: "Diễn viên",
+        actors: "Celebs",
         compare: "So sánh đối đầu",
         network: "Mạng lưới liên kết",
         search: "Lọc nâng cao",
@@ -77,7 +77,20 @@ const resources = {
         worksCount: "tác phẩm",
         totalBoxOffice: "Doanh thu đạt được",
         careerTimeline: "Dòng Thời Gian Sự Nghiệp",
-        landmarkWorks: "Tác phẩm Nổi bật"
+        landmarkWorks: "Tác phẩm Nổi bật",
+        moviesInCareer: "phim trong sự nghiệp",
+        scrollLeft: "Cuộn sang trái",
+        scrollRight: "Cuộn sang phải",
+        byRating: "Theo Rating",
+        byGenre: "Theo Thể loại",
+        colorLegend: "Chú thích màu:",
+        ratingExcellent: "Xuất sắc (≥ 8.0)",
+        ratingGood: "Tốt (7.0 - 7.9)",
+        ratingAverage: "Trung bình (< 7.0)",
+        role: "Vai",
+        unknownRole: "Chưa có dữ liệu",
+        upcoming: "Upcoming",
+        viewMovieDetails: "Xem Chi Tiết Phim"
       },
       compare: {
         title: "So sánh Diễn viên Đối đầu",
@@ -155,7 +168,7 @@ const resources = {
       nav: {
         home: "Home",
         movies: "Movies",
-        actors: "Actors",
+        actors: "Celebs",
         compare: "Compare",
         network: "Actor Network",
         search: "Advanced Filter",
@@ -224,7 +237,20 @@ const resources = {
         worksCount: "movies",
         totalBoxOffice: "Total Box Office",
         careerTimeline: "Career Timeline",
-        landmarkWorks: "Landmark Works"
+        landmarkWorks: "Landmark Works",
+        moviesInCareer: "movies in career",
+        scrollLeft: "Scroll left",
+        scrollRight: "Scroll right",
+        byRating: "By Rating",
+        byGenre: "By Genre",
+        colorLegend: "Color Legend:",
+        ratingExcellent: "Excellent (≥ 8.0)",
+        ratingGood: "Good (7.0 - 7.9)",
+        ratingAverage: "Average (< 7.0)",
+        role: "Role",
+        unknownRole: "Unknown",
+        upcoming: "Upcoming",
+        viewMovieDetails: "View Movie Details"
       },
       compare: {
         title: "Actor Head-to-Head Comparison",

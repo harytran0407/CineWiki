@@ -1,4 +1,4 @@
-# 🎬 CineWiki — Next-Gen Movie & Actor Knowledge Platform
+# CineWiki — Next-Gen Movie & Actor Knowledge Platform
 
 [![React](https://img.shields.io/badge/Frontend-React%2018%20%7C%20TypeScript%20%7C%20Vite-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js%20%7C%20Express%20%7C%20TypeScript-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
@@ -6,45 +6,50 @@
 [![Gemini AI](https://img.shields.io/badge/AI%20Assistant-Google%20Gemini%203.6%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
 [![Vercel](https://img.shields.io/badge/Deployment-Vercel%20Serverless%20%26%20Crons-000000?logo=vercel&logoColor=white)](https://vercel.com/)
 
-**CineWiki** is a modern, full-stack movie and actor encyclopedia monorepo application. Built for speed, visual excellence, and zero-friction user experience, CineWiki features live TMDB data synchronization, real-time actor co-star network graphs, a RAG-enhanced AI chatbot powered by Google Gemini 3.6 Flash, Vercel Serverless Functions & Vercel Crons, and an instant anonymous demo-user experience (no login required).
+CineWiki is a full-stack cinema encyclopedia and actor discovery monorepo application. Built for speed, visual excellence, and zero-friction user experience, CineWiki features live TMDB API data synchronization, real-time actor co-star network graphs, Bayesian rating algorithms, a RAG-enhanced AI chatbot powered by Google Gemini 3.6 Flash, Vercel Serverless Functions & Crons, and complete bilingual support.
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-### 1. 🔍 Advanced Multi-Filter & Live Search
-- **Multi-Parameter Filtering:** Search by keyword, genre, origin country (`VN`, `US`, `KR`, `JP`, `CN`, `GB`, `FR`, `TH`), release year, minimum rating, and sorting criteria.
-- **Smart Ellipsis Pagination:** Responsive, compact pagination bar (`1 2 3 ... 50`) rendering 20 items per page with real-time item count metrics.
-- **Instant Search Suggestions:** Real-time dropdown overlay in navigation and search pages showing instant TMDB title matches as you type.
+### 1. Celebs & Dynamic Person Discovery
+- **Celebs Navigation & Role Dropdown:** Navigation tab named "Celebs" across English and Vietnamese interfaces with a role dropdown menu supporting *All Roles*, *Actors*, *Directors*, and *Writers*.
+- **Country-Aware Dynamic Discovery:** Deep dynamic TMDB discovery for Vietnam (`VN`), South Korea (`KR`), Japan (`JP`), China (`CN`), United States (`US`), United Kingdom (`GB`), France (`FR`), and Thailand (`TH`). Automatically queries country-specific filmography to discover regional directors, writers, and performers.
+- **Accurate Nationality Inference:** Advanced place-of-birth matching covering all 63 Vietnamese provinces, South Korean cities, and international territories. Prevents co-production credits from incorrectly assigning foreign nationalities to actors.
+- **Non-Performance "Self" Credit Filtering:** Automatically filters out documentary, talk-show, and archival appearances (*Self*, *Himself*, *Herself*, *Guest*, *Interviewee*, *Archive Footage*) from actor role classifications and career filmographies.
+- **Popularity-Based Sorting:** Enforces real-time descending TMDB popularity score sorting (`b.popularity - a.popularity`) across all filter combinations.
 
-### 2. 🍿 Detailed Movie & Actor Pages
-- **Distinct Metadata Cards:** Independent, clearly styled cards for Release Date (`Thời điểm phát hành` / `Release Date`) with calendar icons and Runtime (`Thời lượng phim` / `Runtime`) with clock icons.
-- **Authentic TMDB Ratings & Financials:** Direct integration with TMDB REST API v3 for ratings, vote counts, budget, revenue, trailer videos, and cast lists. Missing fields display clean `"Chưa có dữ liệu"` / `"N/A"` labels without fabricated data.
-- **Co-Star Network Graph:** Dynamically fetches co-star relationships from TMDB credit APIs (`/person/{id}/movie_credits` and `/movie/{id}/credits`) to map interactive force-directed co-star networks for any actor.
+### 2. Bayesian IMDb Rating Algorithm for Movies
+- **IMDb Top 250 Bayesian Estimate Formula:** Implements the official weighted rating formula:
+  `WR = (v / (v + m)) * R + (m / (v + m)) * C`
+  where `v` is vote count, `m` is minimum vote threshold (2,500 for global, 250 for regional), `R` is average rating, and `C = 6.9` is the dataset mean.
+- **True Quality Ranking:** Directly ranks movies by Weighted Rating (`WR`), ensuring legendary cinema classics (*The Shawshank Redemption*, *The Godfather*, *The Dark Knight*) occupy top rankings while filtering out unreleased or low-vote niche titles.
 
-### 3. 🤖 CineBot AI Assistant (Google Gemini 3.6 Flash)
-- **RAG Context Integration:** Retrieval-Augmented Generation automatically feeds live TMDB overview, cast, release dates, and ratings into Gemini's system prompt when chatting about specific movies or actors, eliminating AI hallucinations.
-- **Powered by Gemini 3.6 Flash:** Uses Google's latest active Gemini models (`gemini-3.6-flash`, `gemini-3.1-flash-lite`) with SSE streaming support (`/api/ai/chat/stream`) and automatic follow-up question suggestions.
-- **Interactive Awards Discovery:** High-visibility CineBot AI CTA banners guide users to ask CineBot for in-depth film and actor award histories.
+### 3. Advanced Multi-Filter & Search
+- **Multi-Parameter Filtering:** Filter movies by keyword, genre, origin country, release year, minimum rating, and sorting criteria.
+- **Compact Search Bar:** Streamlined search bar with an amber icon button and responsive live search suggestions.
+- **Smart Ellipsis Pagination:** Compact pagination bar (`1 2 3 ... 50`) rendering 20 items per page with real-time item count metrics.
 
-### 4. ⚔️ Multi-Dimensional Movie & Actor Comparison
-- **Movie & Actor Pickers:** Side-by-side comparison with instant live search and quick suggestion cards.
-- **Bilingual Comparison Tables:** Comprehensive criteria breakdown including IMDb ratings, total box office, production budget, release date, runtime, director, studio, acting style, and landmark works.
+### 4. Interactive Actor & Movie Detail Pages
+- **Role-Tailored Biographies:** Custom biography generation for Directors, Writers, and Actors highlighting career milestones, box office totals, and landmark works.
+- **Clean Character Names:** Displays character names directly in filmographies without redundant role labels.
+- **Co-Star Force-Directed Graph:** Interactive co-star network graph built on Canvas with dynamic radius calculation, node scaling, and orientation resize handlers.
 
-### 5. ⚡ Serverless Monorepo Architecture & Vercel Crons
-- **Zero Authentication Barrier:** Instant anonymous demo-user flow (`"demo-user"` ID) for follow and notification features.
-- **Vercel Functions & Crons:** Monorepo serverless entry point (`api/index.ts`) with scheduled notifications powered by Vercel Cron Jobs (`GET /api/cron/notifications`).
-- **Clean TypeScript Build:** Includes `client/src/vite-env.d.ts` for clean zero-error production builds (`tsc && vite build`).
+### 5. CineBot AI Assistant (Google Gemini 3.6 Flash)
+- **RAG Context Integration:** Retrieval-Augmented Generation feeds live TMDB overview, cast, release dates, and ratings into Gemini's system prompt to eliminate AI hallucinations.
+- **SSE Streaming & Responsive UI:** Streamed response generation via Server-Sent Events (`/api/ai/chat/stream`) with viewport auto-scaling for mobile devices.
 
-### 6. 🌐 Complete Bilingual Support (English & Vietnamese)
-- Single-click language toggle across all pages, navigation header, compare pickers, tables, and AI chatbot interface.
+### 6. Multi-Dimensional Comparison & Monorepo Architecture
+- **Movie & Actor Pickers:** Side-by-side comparison tables covering ratings, box office, budget, release date, runtime, director, studio, acting style, and landmark films.
+- **Vercel Serverless Functions & Crons:** Monorepo serverless entry point (`api/index.ts`) with scheduled notifications powered by Vercel Cron Jobs (`GET /api/cron/notifications`).
+- **Complete Bilingual Support:** Instant language toggle for English (`EN`) and Vietnamese (`VI`).
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Frontend
-- **Framework:** React 18 with Vite & TypeScript (`client/src/vite-env.d.ts`)
+- **Framework:** React 18 with Vite & TypeScript
 - **Styling:** Vanilla CSS & TailwindCSS (Dark Mode Glassmorphism Theme)
 - **Icons:** Lucide React
 - **Internationalization:** i18next & react-i18next
@@ -58,7 +63,7 @@
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Prerequisites
 - **Node.js**: `v18.x` or higher
@@ -94,7 +99,7 @@ cd server && npm run build
 
 ---
 
-## 📄 License & Acknowledgments
+## License & Acknowledgments
 
 - Built for film lovers and cinephiles worldwide.
 - Movie and actor data provided by [TMDB](https://www.themoviedb.org/).

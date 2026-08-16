@@ -138,51 +138,77 @@ function resolveGenre(genreIds?: number[]): string {
   return 'Chính kịch';
 }
 
+export function isSelfRole(character?: string): boolean {
+  if (!character) return false;
+  const c = character.trim().toLowerCase();
+  if (c === 'self' || c === 'himself' || c === 'herself' || c === 'themselves' || c === 'bản thân') return true;
+  if (c.startsWith('self ') || c.startsWith('self -') || c.startsWith('self(') || c.startsWith('self (')) return true;
+  if (c.includes('himself') || c.includes('herself') || c.includes('archive footage') || c.includes('archival footage')) return true;
+  if (c === 'guest' || c === 'interviewee') return true;
+  return false;
+}
+
 function inferNationality(placeOfBirth?: string, defaultNat?: string, knownForMovies?: any[]): string | undefined {
   if (defaultNat) {
     const clean = defaultNat.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
     if (clean && clean !== 'Quốc tế') return clean;
   }
+
   if (placeOfBirth && placeOfBirth !== 'International') {
-    const p = placeOfBirth.toLowerCase();
-    if (p.includes('vietnam') || p.includes('việt nam') || p.includes('ho chi minh') || p.includes('hanoi') || p.includes('da nang') || p.includes('saigon') || p.includes('tra vinh') || p.includes('ben tre') || p.includes('can tho') || p.includes('nha trang') || p.includes('hai phong') || p.includes('vung tau')) return 'Việt Nam';
-    if (p.includes('uk') || p.includes('united kingdom') || p.includes('england') || p.includes('london') || p.includes('scotland') || p.includes('wales') || p.includes('britain')) return 'Anh';
-    if (p.includes('korea') || p.includes('seoul') || p.includes('busan')) return 'Hàn Quốc';
-    if (p.includes('japan') || p.includes('tokyo') || p.includes('osaka') || p.includes('kyoto')) return 'Nhật Bản';
-    if (p.includes('china') || p.includes('hong kong') || p.includes('beijing') || p.includes('shanghai') || p.includes('taiwan')) return 'Trung Quốc';
-    if (p.includes('france') || p.includes('paris')) return 'Pháp';
-    if (p.includes('germany') || p.includes('berlin') || p.includes('munich')) return 'Đức';
+    const p = placeOfBirth.toLowerCase().trim();
+    const parts = placeOfBirth.split(',').map((pt) => pt.trim().toLowerCase());
+    const lastPart = parts[parts.length - 1];
+
+    // Priority 1: Check country in the LAST part of place_of_birth first!
+    if (lastPart.includes('canada')) return 'Canada';
+    if (lastPart.includes('vietnam') || lastPart.includes('việt nam')) return 'Việt Nam';
+    if (lastPart.includes('uk') || lastPart.includes('united kingdom') || lastPart.includes('england') || lastPart.includes('scotland') || lastPart.includes('wales') || lastPart.includes('britain')) return 'Anh';
+    if (lastPart.includes('korea') || lastPart.includes('rok') || lastPart.includes('south korea') || lastPart.includes('hàn quốc')) return 'Hàn Quốc';
+    if (lastPart.includes('japan')) return 'Nhật Bản';
+    if (lastPart.includes('china') || lastPart.includes('hong kong') || lastPart.includes('taiwan')) return 'Trung Quốc';
+    if (lastPart.includes('france')) return 'Pháp';
+    if (lastPart.includes('germany')) return 'Đức';
+    if (lastPart.includes('italy')) return 'Ý';
+    if (lastPart.includes('spain')) return 'Tây Ban Nha';
+    if (lastPart.includes('australia')) return 'Úc';
+    if (lastPart.includes('india')) return 'Ấn Độ';
+    if (lastPart.includes('guatemala')) return 'Guatemala';
+    if (lastPart.includes('ireland')) return 'Ireland';
+    if (lastPart.includes('russia') || lastPart.includes('ussr')) return 'Nga';
+    if (lastPart.includes('thailand')) return 'Thái Lan';
+    if (lastPart.includes('usa') || lastPart.includes('united states')) return 'Mỹ';
+
+    // Priority 2: Check full place string for specific city names
+    if (p.includes('vietnam') || p.includes('việt nam') || p.includes('ho chi minh') || p.includes('hanoi') || p.includes('ha noi') || p.includes('da nang') || p.includes('saigon') || p.includes('sài gòn') || p.includes('can tho') || p.includes('nha trang') || p.includes('hai phong') || p.includes('vung tau') || p.includes('ben tre') || p.includes('tra vinh') || p.includes('hue') || p.includes('quang nam') || p.includes('binh duong') || p.includes('dong nai') || p.includes('nghe an') || p.includes('thanh hoa') || p.includes('nam dinh') || p.includes('thai binh')) return 'Việt Nam';
+    if (p.includes('canada') || p.includes('toronto') || p.includes('vancouver') || p.includes('montreal') || p.includes('ontario')) return 'Canada';
+    if (p.includes('uk') || p.includes('united kingdom') || p.includes('england') || p.includes('scotland') || p.includes('wales') || p.includes('britain') || p.includes('london') || p.includes('manchester') || p.includes('birmingham') || p.includes('liverpool')) return 'Anh';
+    if (p.includes('korea') || p.includes('seoul') || p.includes('busan') || p.includes('daegu') || p.includes('incheon') || p.includes('gwangju') || p.includes('daejeon') || p.includes('ulsan') || p.includes('gyeonggi') || p.includes('jeju') || p.includes('gangwon') || p.includes('chungcheong') || p.includes('gyeongsang') || p.includes('jeolla') || p.includes('suwon') || p.includes('seongnam') || p.includes('goyang') || p.includes('yongin') || p.includes('changwon')) return 'Hàn Quốc';
+    if (p.includes('japan') || p.includes('tokyo') || p.includes('osaka') || p.includes('kyoto') || p.includes('yokohama') || p.includes('nagoya') || p.includes('fukuoka')) return 'Nhật Bản';
+    if (p.includes('china') || p.includes('hong kong') || p.includes('beijing') || p.includes('shanghai') || p.includes('taiwan') || p.includes('guangzhou')) return 'Trung Quốc';
+    if (p.includes('france') || p.includes('paris') || p.includes('marseille') || p.includes('lyon')) return 'Pháp';
+    if (p.includes('germany') || p.includes('berlin') || p.includes('munich') || p.includes('hamburg') || p.includes('frankfurt')) return 'Đức';
     if (p.includes('italy') || p.includes('rome') || p.includes('milan')) return 'Ý';
     if (p.includes('spain') || p.includes('madrid') || p.includes('barcelona')) return 'Tây Ban Nha';
-    if (p.includes('canada') || p.includes('toronto') || p.includes('vancouver') || p.includes('montreal')) return 'Canada';
     if (p.includes('australia') || p.includes('sydney') || p.includes('melbourne') || p.includes('perth')) return 'Úc';
     if (p.includes('india') || p.includes('mumbai') || p.includes('delhi')) return 'Ấn Độ';
     if (p.includes('ireland') || p.includes('dublin')) return 'Ireland';
     if (p.includes('russia') || p.includes('moscow') || p.includes('ussr')) return 'Nga';
-    if (p.includes('usa') || p.includes('united states') || p.includes('california') || p.includes('new york') || p.includes('los angeles') || p.includes('chicago') || p.includes('texas')) return 'Mỹ';
-    const parts = placeOfBirth.split(',');
-    const country = parts[parts.length - 1].trim();
-    if (country && country !== 'International') return country;
-  }
-  if (knownForMovies && knownForMovies.length > 0) {
-    const hasVnMovie = knownForMovies.some((m: any) => {
-      const l = (m.original_language || '').toLowerCase();
-      const t = (m.title || m.original_title || '').toLowerCase();
-      return l === 'vi' || t.includes('mai') || t.includes('bố già') || t.includes('nhà bà nữ') || t.includes('đất rừng phương nam') || t.includes('hai phượng') || t.includes('cánh đồng bất tận') || t.includes('gái già lắm chiêu') || t.includes('tiệc trăng máu');
-    });
-    if (hasVnMovie) return 'Việt Nam';
+    if (p.includes('usa') || p.includes('united states') || p.includes('california') || p.includes('new york') || p.includes('los angeles') || p.includes('chicago') || p.includes('texas') || p.includes('massachusetts') || p.includes('florida') || p.includes('georgia') || p.includes('illinois') || p.includes('pennsylvania') || p.includes('ohio') || p.includes('new jersey')) return 'Mỹ';
 
-    const mainFilm = knownForMovies[0];
-    const lang = (mainFilm.original_language || '').toLowerCase();
-    if (lang === 'ko') return 'Hàn Quốc';
-    if (lang === 'ja') return 'Nhật Bản';
-    if (lang === 'zh') return 'Trung Quốc';
-    if (lang === 'vi') return 'Việt Nam';
-    if (lang === 'fr') return 'Pháp';
-    if (lang === 'th') return 'Thái Lan';
-    if (lang === 'de') return 'Đức';
-    if (lang === 'es') return 'Tây Ban Nha';
-    if (lang === 'en') return 'Mỹ';
+    const rawCountry = parts[parts.length - 1];
+    if (rawCountry && rawCountry !== 'international' && rawCountry.length > 2) return rawCountry.charAt(0).toUpperCase() + rawCountry.slice(1);
+  }
+
+  if (knownForMovies && knownForMovies.length > 0) {
+    const koCount = knownForMovies.filter((m: any) => (m.original_language || '').toLowerCase() === 'ko').length;
+    const viCount = knownForMovies.filter((m: any) => (m.original_language || '').toLowerCase() === 'vi').length;
+    const jaCount = knownForMovies.filter((m: any) => (m.original_language || '').toLowerCase() === 'ja').length;
+    const zhCount = knownForMovies.filter((m: any) => (m.original_language || '').toLowerCase() === 'zh').length;
+
+    if (koCount >= 2 || (koCount === 1 && knownForMovies.length === 1)) return 'Hàn Quốc';
+    if (viCount >= 1) return 'Việt Nam';
+    if (jaCount >= 2 || (jaCount === 1 && knownForMovies.length === 1)) return 'Nhật Bản';
+    if (zhCount >= 2 || (zhCount === 1 && knownForMovies.length === 1)) return 'Trung Quốc';
   }
   return undefined;
 }
@@ -344,94 +370,452 @@ export class TMDBService {
   static async getPopularActors(
     language: string = 'vi-VN',
     page: number = 1,
-    countryFilter?: string,
-    categoryFilter?: string
-  ): Promise<Actor[]> {
+    options: {
+      countryFilter?: string;
+      genderFilter?: string;
+      departmentFilter?: string;
+    } = {}
+  ): Promise<{ actors: Actor[]; total_pages: number }> {
     try {
-      let accumulatedActors: Actor[] = [];
-      let tmdbPage = (page - 1) * 2 + 1;
+      const { countryFilter, genderFilter, departmentFilter } = options;
+      const targetGender = genderFilter && genderFilter !== 'all' ? parseInt(genderFilter, 10) : null;
+      const targetDept = departmentFilter && departmentFilter !== 'all' ? departmentFilter.toLowerCase().trim() : null;
+      const targetCountry = countryFilter && countryFilter !== 'all' ? countryFilter.toLowerCase().trim() : null;
 
-      while (accumulatedActors.length < 20 && tmdbPage <= (page - 1) * 2 + 10) {
+      const hasFilters = targetCountry !== null || targetGender !== null || targetDept !== null;
+
+      // Case 1: NO Filters active -> Direct TMDB 1-to-1 page mapping (20 per page)
+      if (!hasFilters) {
         const response = await this.getAxiosClient().get('/person/popular', {
-          params: { language, page: tmdbPage }
+          params: { language, page }
         });
-        tmdbPage++;
 
         if (response.data && response.data.results) {
-          const validRaw = response.data.results.filter(
-            (p: any) => p.profile_path && (p.known_for_department === 'Acting' || !p.known_for_department)
-          );
-          const hydrated = await this.hydrateActorDetails(validRaw, language);
+          const rawList = response.data.results.filter((p: any) => p.profile_path && p.profile_path.trim() !== '');
+          const hydrated = await this.hydrateActorDetails(rawList, language);
+          hydrated.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+          return {
+            actors: hydrated.slice(0, 20),
+            total_pages: Math.min(500, response.data.total_pages || 20)
+          };
+        }
+        return { actors: [], total_pages: 1 };
+      }
 
-          for (const actor of hydrated) {
-            if (countryFilter && countryFilter !== 'all') {
+      // Case 2: Filters active (Country, Gender, and/or Department specified)
+      const pool: Actor[] = [];
+      const seenIds = new Set<number>();
+
+      // Special discovery for directors when filtering by Directing (100% Dynamic from TMDB API)
+      // Special discovery for directors when filtering by Directing (100% Dynamic from TMDB API)
+      if (targetDept === 'directing') {
+        try {
+          let discParams1: any = { language, sort_by: 'popularity.desc', page: 1 };
+          let discParams2: any = { language, sort_by: 'revenue.desc', page: 1 };
+          let discParams3: any = { language, sort_by: 'vote_count.desc', page: 1 };
+
+          if (targetCountry === 'việt nam' || targetCountry === 'vn' || targetCountry === 'vietnam') {
+            discParams1 = { language, with_origin_country: 'VN', sort_by: 'revenue.desc', page: 1 };
+            discParams2 = { language, with_original_language: 'vi', sort_by: 'revenue.desc', page: 1 };
+            discParams3 = { language, with_origin_country: 'VN', sort_by: 'popularity.desc', page: 1 };
+          } else if (targetCountry === 'hàn quốc' || targetCountry === 'kr' || targetCountry === 'south korea' || targetCountry === 'korea') {
+            discParams1 = { language, with_origin_country: 'KR', sort_by: 'revenue.desc', page: 1 };
+            discParams2 = { language, with_original_language: 'ko', sort_by: 'revenue.desc', page: 1 };
+            discParams3 = { language, with_origin_country: 'KR', sort_by: 'popularity.desc', page: 1 };
+          } else if (targetCountry === 'nhật bản' || targetCountry === 'jp' || targetCountry === 'japan') {
+            discParams1 = { language, with_origin_country: 'JP', sort_by: 'revenue.desc', page: 1 };
+            discParams2 = { language, with_original_language: 'ja', sort_by: 'revenue.desc', page: 1 };
+            discParams3 = { language, with_origin_country: 'JP', sort_by: 'popularity.desc', page: 1 };
+          } else if (targetCountry === 'trung quốc' || targetCountry === 'cn' || targetCountry === 'china') {
+            discParams1 = { language, with_origin_country: 'CN', sort_by: 'revenue.desc', page: 1 };
+            discParams2 = { language, with_original_language: 'zh', sort_by: 'revenue.desc', page: 1 };
+            discParams3 = { language, with_origin_country: 'HK', sort_by: 'popularity.desc', page: 1 };
+          } else if (targetCountry === 'mỹ' || targetCountry === 'us' || targetCountry === 'usa') {
+            discParams1 = { language, with_origin_country: 'US', sort_by: 'popularity.desc', page: 1 };
+            discParams2 = { language, with_origin_country: 'US', sort_by: 'revenue.desc', page: 1 };
+            discParams3 = { language, with_origin_country: 'US', sort_by: 'vote_count.desc', page: 1 };
+          }
+
+          const [popMoviesRes, revMoviesRes, voteMoviesRes] = await Promise.all([
+            this.getAxiosClient().get('/discover/movie', { params: discParams1 }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: discParams2 }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: discParams3 }).catch(() => null)
+          ]);
+
+          const discoveredMovies: any[] = [];
+          const movieIdsSeen = new Set<number>();
+
+          [popMoviesRes, revMoviesRes, voteMoviesRes].forEach((r) => {
+            if (r && r.data && r.data.results) {
+              r.data.results.forEach((m: any) => {
+                if (!movieIdsSeen.has(m.id)) {
+                  movieIdsSeen.add(m.id);
+                  discoveredMovies.push(m);
+                }
+              });
+            }
+          });
+
+          if (discoveredMovies.length > 0) {
+            const topMovies = discoveredMovies.slice(0, 80);
+            const creditsList = await Promise.all(
+              topMovies.map((m: any) =>
+                this.getAxiosClient().get(`/movie/${m.id}`, { params: { language, append_to_response: 'credits' } }).catch(() => null)
+              )
+            );
+
+            const dynamicDirectorRaw: any[] = [];
+            for (const mRes of creditsList) {
+              if (!mRes || !mRes.data || !mRes.data.credits || !mRes.data.credits.crew) continue;
+              const directors = mRes.data.credits.crew.filter(
+                (c: any) => (c.job || '').toLowerCase() === 'director' || (c.department || '').toLowerCase() === 'directing'
+              );
+              for (const dir of directors) {
+                if (!dir.profile_path || dir.profile_path.trim() === '') continue;
+                if (seenIds.has(dir.id)) continue;
+                if (targetGender !== null && dir.gender !== targetGender) continue;
+                dynamicDirectorRaw.push(dir);
+              }
+            }
+
+            const hydratedDirectors = await this.hydrateActorDetails(dynamicDirectorRaw, language);
+            for (const actor of hydratedDirectors) {
+              if (!actor.profile_path || actor.profile_path.trim() === '') continue;
+              if (seenIds.has(actor.id)) continue;
+              if (targetGender !== null && actor.gender !== undefined && actor.gender !== targetGender) continue;
+              if (targetCountry !== null) {
+                const nat = (actor.nationality || '').toLowerCase();
+                const pob = (actor.place_of_birth || '').toLowerCase();
+                let isMatch = false;
+                if (targetCountry === 'việt nam' || targetCountry === 'vn' || targetCountry === 'vietnam') {
+                  isMatch = nat.includes('việt') || nat.includes('vietnam') || pob.includes('vietnam') || pob.includes('việt nam');
+                } else if (targetCountry === 'hàn quốc' || targetCountry === 'kr' || targetCountry === 'south korea' || targetCountry === 'korea') {
+                  isMatch = nat.includes('hàn quốc') || nat.includes('korea') || pob.includes('korea') || pob.includes('seoul') || pob.includes('busan');
+                } else {
+                  isMatch = nat.includes(targetCountry) || pob.includes(targetCountry);
+                }
+                if (!isMatch) continue;
+              }
+              seenIds.add(actor.id);
+              pool.push(actor);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Special discovery for writers when filtering by Writing (100% Dynamic from TMDB API)
+      if (targetDept === 'writing') {
+        try {
+          let discParams1: any = { language, sort_by: 'popularity.desc', page: 1 };
+          let discParams2: any = { language, sort_by: 'revenue.desc', page: 1 };
+          let discParams3: any = { language, sort_by: 'vote_count.desc', page: 1 };
+
+          if (targetCountry === 'việt nam' || targetCountry === 'vn' || targetCountry === 'vietnam') {
+            discParams1 = { language, with_origin_country: 'VN', sort_by: 'revenue.desc', page: 1 };
+            discParams2 = { language, with_original_language: 'vi', sort_by: 'revenue.desc', page: 1 };
+            discParams3 = { language, with_origin_country: 'VN', sort_by: 'popularity.desc', page: 1 };
+          } else if (targetCountry === 'hàn quốc' || targetCountry === 'kr' || targetCountry === 'south korea' || targetCountry === 'korea') {
+            discParams1 = { language, with_origin_country: 'KR', sort_by: 'revenue.desc', page: 1 };
+            discParams2 = { language, with_original_language: 'ko', sort_by: 'revenue.desc', page: 1 };
+            discParams3 = { language, with_origin_country: 'KR', sort_by: 'popularity.desc', page: 1 };
+          }
+
+          const [popMoviesRes, revMoviesRes, voteMoviesRes] = await Promise.all([
+            this.getAxiosClient().get('/discover/movie', { params: discParams1 }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: discParams2 }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: discParams3 }).catch(() => null)
+          ]);
+
+          const discoveredMovies: any[] = [];
+          const movieIdsSeen = new Set<number>();
+
+          [popMoviesRes, revMoviesRes, voteMoviesRes].forEach((r) => {
+            if (r && r.data && r.data.results) {
+              r.data.results.forEach((m: any) => {
+                if (!movieIdsSeen.has(m.id)) {
+                  movieIdsSeen.add(m.id);
+                  discoveredMovies.push(m);
+                }
+              });
+            }
+          });
+
+          if (discoveredMovies.length > 0) {
+            const topMovies = discoveredMovies.slice(0, 80);
+            const creditsList = await Promise.all(
+              topMovies.map((m: any) =>
+                this.getAxiosClient().get(`/movie/${m.id}`, { params: { language, append_to_response: 'credits' } }).catch(() => null)
+              )
+            );
+
+            const dynamicWriterRaw: any[] = [];
+            for (const mRes of creditsList) {
+              if (!mRes || !mRes.data || !mRes.data.credits || !mRes.data.credits.crew) continue;
+              const writers = mRes.data.credits.crew.filter(
+                (c: any) =>
+                  (c.department || '').toLowerCase() === 'writing' ||
+                  (c.job || '').toLowerCase().includes('screenplay') ||
+                  (c.job || '').toLowerCase().includes('writer')
+              );
+              for (const wr of writers) {
+                if (!wr.profile_path || wr.profile_path.trim() === '') continue;
+                if (seenIds.has(wr.id)) continue;
+                if (targetGender !== null && wr.gender !== targetGender) continue;
+                dynamicWriterRaw.push(wr);
+              }
+            }
+
+            const hydratedWriters = await this.hydrateActorDetails(dynamicWriterRaw, language);
+            for (const actor of hydratedWriters) {
+              if (!actor.profile_path || actor.profile_path.trim() === '') continue;
+              if (seenIds.has(actor.id)) continue;
+              if (targetGender !== null && actor.gender !== undefined && actor.gender !== targetGender) continue;
+              if (targetCountry !== null) {
+                const nat = (actor.nationality || '').toLowerCase();
+                const pob = (actor.place_of_birth || '').toLowerCase();
+                let isMatch = false;
+                if (targetCountry === 'việt nam' || targetCountry === 'vn' || targetCountry === 'vietnam') {
+                  isMatch = nat.includes('việt') || nat.includes('vietnam') || pob.includes('vietnam') || pob.includes('việt nam');
+                } else if (targetCountry === 'hàn quốc' || targetCountry === 'kr' || targetCountry === 'south korea' || targetCountry === 'korea') {
+                  isMatch = nat.includes('hàn quốc') || nat.includes('korea') || pob.includes('korea') || pob.includes('seoul') || pob.includes('busan');
+                } else {
+                  isMatch = nat.includes(targetCountry) || pob.includes(targetCountry);
+                }
+                if (!isMatch) continue;
+              }
+              seenIds.add(actor.id);
+              pool.push(actor);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Special discovery for regional countries (Việt Nam, Hàn Quốc)
+      if (targetCountry === 'hàn quốc' || targetCountry === 'kr' || targetCountry === 'south korea' || targetCountry === 'korea') {
+        try {
+          const discRes = await Promise.all([
+            this.getAxiosClient().get('/discover/movie', { params: { language, with_origin_country: 'KR', sort_by: 'revenue.desc', page: 1 } }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: { language, with_original_language: 'ko', sort_by: 'revenue.desc', page: 1 } }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: { language, with_origin_country: 'KR', sort_by: 'popularity.desc', page: 1 } }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: { language, with_original_language: 'ko', sort_by: 'popularity.desc', page: 2 } }).catch(() => null)
+          ]);
+
+          const discoveredMovies: any[] = [];
+          const movieIdsSeen = new Set<number>();
+          discRes.forEach((r) => {
+            if (r && r.data && r.data.results) {
+              r.data.results.forEach((m: any) => {
+                if (!movieIdsSeen.has(m.id)) {
+                  movieIdsSeen.add(m.id);
+                  discoveredMovies.push(m);
+                }
+              });
+            }
+          });
+
+          if (discoveredMovies.length > 0) {
+            const topMovies = discoveredMovies.slice(0, 60);
+            const creditsList = await Promise.all(
+              topMovies.map((m: any) =>
+                this.getAxiosClient().get(`/movie/${m.id}`, { params: { language, append_to_response: 'credits' } }).catch(() => null)
+              )
+            );
+
+            const dynamicCastRaw: any[] = [];
+            for (const mRes of creditsList) {
+              if (!mRes || !mRes.data || !mRes.data.credits || !mRes.data.credits.cast) continue;
+              for (const member of mRes.data.credits.cast) {
+                if (!member.profile_path || member.profile_path.trim() === '') continue;
+                if (seenIds.has(member.id)) continue;
+                if (targetGender !== null && member.gender !== targetGender) continue;
+                if (isSelfRole(member.character)) continue;
+                dynamicCastRaw.push(member);
+              }
+            }
+
+            const hydratedDiscovered = await this.hydrateActorDetails(dynamicCastRaw, language);
+            for (const actor of hydratedDiscovered) {
+              if (!actor.profile_path || actor.profile_path.trim() === '') continue;
+              if (seenIds.has(actor.id)) continue;
+              if (targetGender !== null && actor.gender !== undefined && actor.gender !== targetGender) continue;
+              if (targetDept !== null) {
+                const dept = (actor.known_for_department || 'acting').toLowerCase();
+                if (!dept.includes(targetDept)) continue;
+              }
               const nat = (actor.nationality || '').toLowerCase();
               const pob = (actor.place_of_birth || '').toLowerCase();
-              const cLower = countryFilter.toLowerCase();
-              const isMatch =
-                nat.includes(cLower) ||
-                pob.includes(cLower) ||
-                (cLower === 'việt nam' && (nat.includes('việt') || pob.includes('vietnam')));
+              const isKr = nat.includes('hàn quốc') || nat.includes('korea') || pob.includes('korea') || pob.includes('seoul') || pob.includes('busan');
+              if (!isKr) continue;
+
+              seenIds.add(actor.id);
+              pool.push(actor);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Special discovery for regional countries with few global popular person entries (e.g. Việt Nam)
+      if (targetCountry === 'việt nam' || targetCountry === 'vn' || targetCountry === 'vietnam') {
+        try {
+          const discRes = await Promise.all([
+            this.getAxiosClient().get('/discover/movie', { params: { language, with_origin_country: 'VN', sort_by: 'revenue.desc', page: 1 } }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: { language, with_original_language: 'vi', sort_by: 'revenue.desc', page: 1 } }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: { language, with_origin_country: 'VN', sort_by: 'popularity.desc', page: 1 } }).catch(() => null),
+            this.getAxiosClient().get('/discover/movie', { params: { language, with_original_language: 'vi', sort_by: 'popularity.desc', page: 2 } }).catch(() => null)
+          ]);
+
+          const discoveredMovies: any[] = [];
+          const movieIdsSeen = new Set<number>();
+          discRes.forEach((r) => {
+            if (r && r.data && r.data.results) {
+              r.data.results.forEach((m: any) => {
+                if (!movieIdsSeen.has(m.id)) {
+                  movieIdsSeen.add(m.id);
+                  discoveredMovies.push(m);
+                }
+              });
+            }
+          });
+
+          if (discoveredMovies.length > 0) {
+            const topMovies = discoveredMovies.slice(0, 60);
+            const creditsList = await Promise.all(
+              topMovies.map((m: any) =>
+                this.getAxiosClient().get(`/movie/${m.id}`, { params: { language, append_to_response: 'credits' } }).catch(() => null)
+              )
+            );
+
+            const dynamicCastRaw: any[] = [];
+            for (const mRes of creditsList) {
+              if (!mRes || !mRes.data || !mRes.data.credits || !mRes.data.credits.cast) continue;
+              for (const member of mRes.data.credits.cast) {
+                if (!member.profile_path || member.profile_path.trim() === '') continue;
+                if (seenIds.has(member.id)) continue;
+                if (targetGender !== null && member.gender !== targetGender) continue;
+                if (isSelfRole(member.character)) continue;
+                dynamicCastRaw.push(member);
+              }
+            }
+
+            const hydratedDiscovered = await this.hydrateActorDetails(dynamicCastRaw, language);
+            for (const actor of hydratedDiscovered) {
+              if (!actor.profile_path || actor.profile_path.trim() === '') continue;
+              if (seenIds.has(actor.id)) continue;
+              if (targetGender !== null && actor.gender !== undefined && actor.gender !== targetGender) continue;
+              if (targetDept !== null) {
+                const dept = (actor.known_for_department || 'acting').toLowerCase();
+                if (!dept.includes(targetDept)) continue;
+              }
+              const nat = (actor.nationality || '').toLowerCase();
+              const pob = (actor.place_of_birth || '').toLowerCase();
+              const isVn = nat.includes('việt') || nat.includes('vietnam') || pob.includes('vietnam') || pob.includes('việt nam');
+              if (!isVn) continue;
+
+              seenIds.add(actor.id);
+              pool.push(actor);
+            }
+          }
+        } catch (discErr) {
+          // continue to popular scan
+        }
+      }
+
+      const SCAN_PAGES = 50;
+      const tmdbPages = Array.from({ length: SCAN_PAGES }, (_, i) => i + 1);
+
+      for (let i = 0; i < tmdbPages.length; i += 5) {
+        const batchPages = tmdbPages.slice(i, i + 5);
+        const responses = await Promise.all(
+          batchPages.map((pNum) =>
+            this.getAxiosClient()
+              .get('/person/popular', { params: { language, page: pNum } })
+              .catch(() => null)
+          )
+        );
+
+        for (const res of responses) {
+          if (!res || !res.data || !res.data.results) continue;
+          const rawList = res.data.results;
+
+          const filteredRaw = rawList.filter((p: any) => {
+            if (!p.profile_path || p.profile_path.trim() === '') return false;
+            if (seenIds.has(p.id)) return false;
+            if (targetGender !== null && p.gender !== undefined && p.gender !== targetGender) return false;
+            if (targetDept !== null && p.known_for_department) {
+              if (!p.known_for_department.toLowerCase().includes(targetDept)) return false;
+            }
+            return true;
+          });
+
+          const hydrated = await this.hydrateActorDetails(filteredRaw, language);
+
+          for (const actor of hydrated) {
+            if (!actor.profile_path || actor.profile_path.trim() === '') continue;
+            if (seenIds.has(actor.id)) continue;
+
+            if (targetGender !== null && actor.gender !== undefined && actor.gender !== targetGender) {
+              continue;
+            }
+
+            if (targetDept !== null) {
+              const dept = (actor.known_for_department || 'acting').toLowerCase();
+              if (!dept.includes(targetDept)) continue;
+            }
+
+            if (targetCountry !== null) {
+              const nat = (actor.nationality || '').toLowerCase();
+              const pob = (actor.place_of_birth || '').toLowerCase();
+
+              let isMatch = false;
+              if (targetCountry === 'hàn quốc' || targetCountry === 'kr' || targetCountry === 'south korea' || targetCountry === 'korea') {
+                isMatch = nat.includes('hàn quốc') || nat.includes('korea') || pob.includes('korea') || pob.includes('seoul') || pob.includes('busan');
+              } else if (targetCountry === 'việt nam' || targetCountry === 'vn' || targetCountry === 'vietnam') {
+                isMatch = nat.includes('việt') || nat.includes('vietnam') || pob.includes('vietnam') || pob.includes('việt nam');
+              } else if (targetCountry === 'mỹ' || targetCountry === 'us' || targetCountry === 'usa') {
+                isMatch = nat.includes('mỹ') || nat.includes('usa') || nat.includes('united states') || pob.includes('usa') || pob.includes('united states');
+              } else if (targetCountry === 'anh' || targetCountry === 'gb' || targetCountry === 'uk') {
+                isMatch = nat.includes('anh') || nat.includes('uk') || nat.includes('england') || pob.includes('uk') || pob.includes('england');
+              } else if (targetCountry === 'nhật bản' || targetCountry === 'jp' || targetCountry === 'japan') {
+                isMatch = nat.includes('nhật') || nat.includes('japan') || pob.includes('japan');
+              } else if (targetCountry === 'trung quốc' || targetCountry === 'cn' || targetCountry === 'china') {
+                isMatch = nat.includes('trung quốc') || nat.includes('china') || nat.includes('hong kong') || nat.includes('taiwan') || pob.includes('china') || pob.includes('hong kong') || pob.includes('taiwan');
+              } else if (targetCountry === 'pháp' || targetCountry === 'fr' || targetCountry === 'france') {
+                isMatch = nat.includes('pháp') || nat.includes('france') || pob.includes('france');
+              } else if (targetCountry === 'thái lan' || targetCountry === 'th' || targetCountry === 'thailand') {
+                isMatch = nat.includes('thái') || nat.includes('thailand') || pob.includes('thailand');
+              } else {
+                isMatch = nat.includes(targetCountry) || pob.includes(targetCountry);
+              }
+
               if (!isMatch) continue;
             }
 
-            if (!accumulatedActors.some((a) => a.id === actor.id)) {
-              accumulatedActors.push(actor);
-            }
-            if (accumulatedActors.length >= 20) break;
+            seenIds.add(actor.id);
+            pool.push(actor);
           }
         }
       }
 
-      // Handle Oscar filter with verified Oscar winner IDs
-      if (categoryFilter === 'oscars') {
-        const oscarIds = [14341, 5064, 514, 11856, 4173, 31, 5292, 380, 3061, 54693, 6193, 3223, 1620, 2038, 287, 1810, 14115, 3894, 1158];
-        const rawOscarList = oscarIds.map((id) => ({ id }));
-        const hydratedOscars = await this.hydrateActorDetails(rawOscarList, language);
+      pool.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 
-        const filteredOscars = hydratedOscars.filter((actor) => {
-          if (countryFilter && countryFilter !== 'all') {
-            const nat = (actor.nationality || '').toLowerCase();
-            const pob = (actor.place_of_birth || '').toLowerCase();
-            const cLower = countryFilter.toLowerCase();
-            return nat.includes(cLower) || pob.includes(cLower) || (cLower === 'việt nam' && (nat.includes('việt') || pob.includes('vietnam')));
-          }
-          return true;
-        });
+      const totalAvailable = pool.length;
+      const total_pages = Math.max(1, Math.ceil(totalAvailable / 20));
+      const startIndex = (page - 1) * 20;
 
-        filteredOscars.sort((a, b) => {
-          const countA = a.awards?.filter((aw) => aw.name.toLowerCase().includes('oscar') && aw.status === 'won').length || 0;
-          const countB = b.awards?.filter((aw) => aw.name.toLowerCase().includes('oscar') && aw.status === 'won').length || 0;
-          return countB - countA;
-        });
-
-        return filteredOscars.slice(0, 20);
-      }
-
-      // Handle Box Office filter with verified All-Time Box Office Champions
-      if (categoryFilter === 'boxoffice') {
-        const boxOfficeIds = [1245, 3223, 2231, 8691, 73968, 500, 31, 1136406, 6193, 287];
-        const rawBoxOfficeList = boxOfficeIds.map((id) => ({ id }));
-        const hydratedBoxOffice = await this.hydrateActorDetails(rawBoxOfficeList, language);
-
-        const filteredBoxOffice = hydratedBoxOffice.filter((actor) => {
-          if (countryFilter && countryFilter !== 'all') {
-            const nat = (actor.nationality || '').toLowerCase();
-            const pob = (actor.place_of_birth || '').toLowerCase();
-            const cLower = countryFilter.toLowerCase();
-            return nat.includes(cLower) || pob.includes(cLower) || (cLower === 'việt nam' && (nat.includes('việt') || pob.includes('vietnam')));
-          }
-          return true;
-        });
-
-        return filteredBoxOffice.slice(0, 20);
-      }
-
-      return accumulatedActors.slice(0, 20);
+      return {
+        actors: pool.slice(startIndex, startIndex + 20),
+        total_pages
+      };
     } catch (err) {
       console.warn(`[TMDB API Error] /person/popular failed: ${(err as Error).message}`);
+      return { actors: [], total_pages: 1 };
     }
-    return [];
   }
 
   static async getActorDetails(actorId: number, language: string = 'vi-VN'): Promise<Actor | null> {
@@ -526,7 +910,7 @@ export class TMDBService {
           if (sort === 'date' || yearFrom >= 2024) {
             params['vote_count.gte'] = 5;
           } else if (sort === 'rating' || minRating > 0) {
-            params['vote_count.gte'] = 300;
+            params['vote_count.gte'] = 1000;
           }
         } else {
           params['vote_count.gte'] = 5;
@@ -685,15 +1069,13 @@ export class TMDBService {
         const scoreA = a.imdb_score || a.vote_average || 0;
         const scoreB = b.imdb_score || b.vote_average || 0;
 
-        // Primary sort: strictly by displayed IMDb score descending (9.3 > 9.2 > 9.0 > 8.9 > 8.8)
-        if (Math.abs(scoreB - scoreA) >= 0.05) {
-          return scoreB - scoreA;
-        }
+        const wrA = calculateWeightedRating(scoreA, a.vote_count || 0, mThreshold, 6.9);
+        const wrB = calculateWeightedRating(scoreB, b.vote_count || 0, mThreshold, 6.9);
 
-        // Secondary tie-breaker: Bayesian Weighted Rating (WR)
-        const wrA = calculateWeightedRating(scoreA, a.vote_count || 100, mThreshold, 6.9);
-        const wrB = calculateWeightedRating(scoreB, b.vote_count || 100, mThreshold, 6.9);
-        return wrB - wrA;
+        if (Math.abs(wrB - wrA) >= 0.01) {
+          return wrB - wrA;
+        }
+        return scoreB - scoreA;
       });
     } else if (sort === 'date') {
       allMovies.sort((a, b) => (b.release_date || '').localeCompare(a.release_date || ''));
@@ -1032,17 +1414,80 @@ export class TMDBService {
 
   private static mapTMDBActorDetail(a: any, language: string = 'vi-VN'): Actor {
     const knownInfo = KNOWN_ACTORS_MAP[a.id.toString()];
-    const castFilms = a.movie_credits?.cast || [];
-    const sortedCast = [...castFilms].sort((f1, f2) => (f2.vote_count || 0) - (f1.vote_count || 0));
+    const isDirector = (a.known_for_department || '').toLowerCase().includes('directing');
+
+    const rawCastFilms = a.movie_credits?.cast || [];
+    const castFilms = rawCastFilms.filter((c: any) => !isSelfRole(c.character));
+    const crewList = a.movie_credits?.crew || [];
+    const crewFilms = crewList
+      .filter((c: any) => {
+        const j = (c.job || '').toLowerCase();
+        const d = (c.department || '').toLowerCase();
+        return j === 'director' || d === 'directing' || d === 'writing' || j.includes('screenplay') || j.includes('writer');
+      })
+      .map((c: any) => {
+        const j = (c.job || '').toLowerCase();
+        const d = (c.department || '').toLowerCase();
+        const roleLabel = j === 'director' || d === 'directing' ? 'Đạo diễn' : 'Biên kịch';
+        return { ...c, character: roleLabel };
+      });
+
+    const hasCast = castFilms.length > 0;
+    const hasDirecting = crewList.some((c: any) => (c.job || '').toLowerCase() === 'director' || (c.department || '').toLowerCase() === 'directing');
+    const hasWriting = crewList.some((c: any) => (c.department || '').toLowerCase() === 'writing' || (c.job || '').toLowerCase().includes('screenplay') || (c.job || '').toLowerCase().includes('writer'));
+
+    const rolesSet = new Set<string>();
+    const primaryDept = (a.known_for_department || 'Acting').toLowerCase();
+
+    if (primaryDept.includes('directing') && hasDirecting) rolesSet.add('Directing');
+    else if (primaryDept.includes('writing') && hasWriting) rolesSet.add('Writing');
+    else if (hasCast) rolesSet.add('Acting');
+
+    if (hasDirecting) rolesSet.add('Directing');
+    if (hasWriting) rolesSet.add('Writing');
+    if (hasCast) rolesSet.add('Acting');
+
+    if (rolesSet.size === 0) {
+      rolesSet.add(a.known_for_department || 'Acting');
+    }
+
+    const multiRolesStr = Array.from(rolesSet).join(' • ');
+
+    const rawCombined = isDirector && crewFilms.length > 0 ? [...crewFilms, ...castFilms] : [...castFilms, ...crewFilms];
+    const seenMovieIds = new Set<number>();
+    const uniqueFilms: any[] = [];
+    for (const f of rawCombined) {
+      if (!seenMovieIds.has(f.id)) {
+        seenMovieIds.add(f.id);
+        uniqueFilms.push(f);
+      }
+    }
+
+    const sortedCast = [...uniqueFilms].sort((f1, f2) => (f2.vote_count || 0) - (f1.vote_count || 0));
 
     const filmography = sortedCast.slice(0, 100).map((f: any) => {
       const rawImg = f.poster_path || f.backdrop_path;
+
+      const mRoles: string[] = [];
+      const crewForMovie = crewList.filter((c: any) => c.id === f.id);
+      const isDir = crewForMovie.some((c: any) => (c.job || '').toLowerCase() === 'director' || (c.department || '').toLowerCase() === 'directing');
+      const isWri = crewForMovie.some((c: any) => (c.department || '').toLowerCase() === 'writing' || (c.job || '').toLowerCase().includes('screenplay') || (c.job || '').toLowerCase().includes('writer'));
+      const castItem = castFilms.find((c: any) => c.id === f.id);
+
+      if (isDir) mRoles.push('Đạo diễn');
+      if (isWri) mRoles.push('Biên kịch');
+      if (castItem) {
+        mRoles.push(castItem.character ? castItem.character : 'Diễn viên');
+      }
+
+      const roleSummary = mRoles.length > 0 ? mRoles.join(' • ') : (f.character || (isDirector ? 'Đạo diễn' : 'Chưa có dữ liệu'));
+
       return {
         id: f.id,
         title: f.title || f.original_title,
         original_title: f.original_title || f.title,
         year: f.release_date ? parseInt(f.release_date.split('-')[0], 10) : 0,
-        character: f.character || 'Chưa có dữ liệu',
+        character: roleSummary,
         vote_average: f.vote_average ? Math.round(f.vote_average * 10) / 10 : 0,
         poster_path: rawImg ? (rawImg.startsWith('http') ? rawImg : `https://image.tmdb.org/t/p/w300${rawImg}`) : '',
         genre: resolveGenre(f.genre_ids)
@@ -1110,17 +1555,32 @@ export class TMDBService {
         ? (deathday ? `từ năm ${dynamicDebutYear} đến năm ${deathYearStr} (${yearsActive} năm hoạt động)` : `từ năm ${dynamicDebutYear} đến nay (${yearsActive} năm hoạt động)`)
         : '';
       const boxOfficeStr = knownInfo?.total_box_office || estimatedBoxOffice;
+      const isDirectorBio = (a.known_for_department || '').toLowerCase().includes('directing');
+      const isWriterBio = (a.known_for_department || '').toLowerCase().includes('writing');
 
-      const p1 = `${a.name} ${birthPart} ${placePart}, chính thức dấn thân vào con đường nghệ thuật ${activeSpanStr}. Tính đến nay, ${a.name} đã gia nhập dàn diễn viên của hơn ${castFilms.length} tác phẩm điện ảnh lớn nhỏ với tổng doanh thu phòng vé ấn tượng đạt ${boxOfficeStr}.`.replace(/\s+/g, ' ').trim();
+      const p1 = isDirectorBio
+        ? `${a.name} ${birthPart} ${placePart}, chính thức dấn thân vào con đường nghệ thuật ${activeSpanStr}. Tính đến nay, ${a.name} đã chỉ đạo nghệ thuật và thực hiện hơn ${uniqueFilms.length} tác phẩm điện ảnh lớn nhỏ với tổng doanh thu phòng vé ấn tượng đạt ${boxOfficeStr}.`.replace(/\s+/g, ' ').trim()
+        : isWriterBio
+        ? `${a.name} ${birthPart} ${placePart}, chính thức dấn thân vào con đường nghệ thuật ${activeSpanStr}. Tính đến nay, ${a.name} đã sáng tạo kịch bản cho hơn ${uniqueFilms.length} tác phẩm điện ảnh lớn nhỏ với tổng doanh thu phòng vé ấn tượng đạt ${boxOfficeStr}.`.replace(/\s+/g, ' ').trim()
+        : `${a.name} ${birthPart} ${placePart}, chính thức dấn thân vào con đường nghệ thuật ${activeSpanStr}. Tính đến nay, ${a.name} đã gia nhập dàn diễn viên của hơn ${uniqueFilms.length} tác phẩm điện ảnh lớn nhỏ với tổng doanh thu phòng vé ấn tượng đạt ${boxOfficeStr}.`.replace(/\s+/g, ' ').trim();
+
       const p2 = worksList
-        ? `Sự nghiệp của ${a.name} ghi dấu ấn đậm nét qua các vai diễn biểu tượng trong những dự án đình đám như ${worksList}.`.replace(/\s+/g, ' ').trim()
+        ? isDirectorBio
+          ? `Sự nghiệp đạo diễn của ${a.name} ghi dấu ấn đậm nét qua các kiệt tác chỉ đạo điện ảnh đình đám như ${worksList}.`.replace(/\s+/g, ' ').trim()
+          : isWriterBio
+          ? `Sự nghiệp biên kịch của ${a.name} ghi dấu ấn đậm nét qua các kịch bản xuất sắc trong những dự án đình đám như ${worksList}.`.replace(/\s+/g, ' ').trim()
+          : `Sự nghiệp của ${a.name} ghi dấu ấn đậm nét qua các vai diễn biểu tượng trong những dự án đình đám như ${worksList}.`.replace(/\s+/g, ' ').trim()
         : '';
 
       const existingBioVi = knownInfo?.biography_vi;
       if (existingBioVi && existingBioVi.length > 40) {
         enrichedBio = `${p1}\n\n${existingBioVi}${p2 ? `\n\n${p2}` : ''}`;
       } else {
-        const p3 = `${a.name} được giới chuyên môn và khán giả đánh giá cao nhờ lối diễn xuất tự nhiên, khả năng làm chủ cảm xúc và sự xả thân hết mình cho từng khung hình. Sự tận tụy với nghề cùng tư duy nghệ thuật sắc bén đã giúp ${a.name} trở thành một trong những gương mặt điện ảnh hàng đầu.`;
+        const p3 = isDirectorBio
+          ? `${a.name} được giới chuyên môn và khán giả đánh giá cao nhờ tư duy đạo diễn độc đáo, phong cách dàn dựng ấn tượng và tầm nhìn điện ảnh vượt thời gian.`
+          : isWriterBio
+          ? `${a.name} được giới chuyên môn và khán giả đánh giá cao nhờ tư duy kịch bản sắc bén, chiều sâu tâm lý nhân vật và những câu chuyện điện ảnh đầy sức hút.`
+          : `${a.name} được giới chuyên môn và khán giả đánh giá cao nhờ lối diễn xuất tự nhiên, khả năng làm chủ cảm xúc và sự xả thân hết mình cho từng khung hình. Sự tận tụy với nghề cùng tư duy nghệ thuật sắc bén đã giúp ${a.name} trở thành một trong những gương mặt điện ảnh hàng đầu.`;
         enrichedBio = `${p1}\n\n${p2 ? `${p2}\n\n` : ''}${p3}`;
       }
     }
@@ -1136,7 +1596,7 @@ export class TMDBService {
       nationality: inferNationality(a.place_of_birth || knownInfo?.place_of_birth, knownInfo?.nationality, sortedCast),
       height: '1.75 m',
       debut_year: dynamicDebutYear,
-      known_for_department: a.known_for_department || 'Acting',
+      known_for_department: multiRolesStr || a.known_for_department || 'Acting',
       acting_style: knownInfo?.acting_style || 'Phương pháp diễn xuất dấn thân và biến hóa đa dạng qua nhiều thể loại.',
       total_box_office: knownInfo?.total_box_office || estimatedBoxOffice,
       highest_grossing_movie: knownInfo?.highest_grossing_movie || dynamicHighestGrossing,

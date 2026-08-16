@@ -45,8 +45,83 @@ const parseMoneyNum = (val?: string | number): number => {
     const num = parseFloat(str.replace(/[^0-9.]/g, ''));
     return isNaN(num) ? 0 : num * 1000000;
   }
-  const num = parseFloat(str.replace(/[^0-9.]/g, ''));
-  return isNaN(num) ? 0 : num;
+  const clean = parseFloat(str.replace(/[^0-9.]/g, ''));
+  return isNaN(clean) ? 0 : clean;
+};
+
+const translateGenreName = (g: string, isEn: boolean): string => {
+  const viToEnMap: Record<string, string> = {
+    'Hành động': 'Action',
+    'Phiêu lưu': 'Adventure',
+    'Hoạt hình': 'Animation',
+    'Hài hước': 'Comedy',
+    'Tội phạm': 'Crime',
+    'Tài liệu': 'Documentary',
+    'Chính kịch': 'Drama',
+    'Gia đình': 'Family',
+    'Kỳ ảo': 'Fantasy',
+    'Lịch sử': 'History',
+    'Kinh dị': 'Horror',
+    'Âm nhạc': 'Music',
+    'Bí ẩn': 'Mystery',
+    'Tình cảm': 'Romance',
+    'Viễn tưởng': 'Sci-Fi',
+    'Phim truyền hình': 'TV Movie',
+    'Giật gân': 'Thriller',
+    'Chiến tranh': 'War',
+    'Miền Tây': 'Western'
+  };
+
+  const enToViMap: Record<string, string> = {
+    Action: 'Hành động',
+    Adventure: 'Phiêu lưu',
+    Animation: 'Hoạt hình',
+    Comedy: 'Hài hước',
+    Crime: 'Tội phạm',
+    Documentary: 'Tài liệu',
+    Drama: 'Chính kịch',
+    Family: 'Gia đình',
+    Fantasy: 'Kỳ ảo',
+    History: 'Lịch sử',
+    Horror: 'Kinh dị',
+    Music: 'Âm nhạc',
+    Mystery: 'Bí ẩn',
+    Romance: 'Tình cảm',
+    'Sci-Fi': 'Viễn tưởng',
+    'Science Fiction': 'Viễn tưởng',
+    'TV Movie': 'Phim truyền hình',
+    Thriller: 'Giật gân',
+    War: 'Chiến tranh',
+    Western: 'Miền Tây'
+  };
+
+  if (isEn) {
+    return viToEnMap[g] || g;
+  }
+  return enToViMap[g] || g;
+};
+
+const getActorVersatility = (actor: Actor, isEn: boolean): string | null => {
+  if (actor.acting_style) return actor.acting_style;
+  if (!actor.filmography || actor.filmography.length === 0) return null;
+
+  const genreCounts: Record<string, number> = {};
+  actor.filmography.forEach((f) => {
+    if (f.genre && f.genre !== 'Cinema' && f.genre !== 'Other') {
+      genreCounts[f.genre] = (genreCounts[f.genre] || 0) + 1;
+    }
+  });
+
+  const sortedGenres = Object.keys(genreCounts).sort((a, b) => genreCounts[b] - genreCounts[a]);
+  if (sortedGenres.length === 0) return null;
+
+  const topGenres = sortedGenres.slice(0, 3).map((g) => translateGenreName(g, isEn)).join(', ');
+  const totalGenres = sortedGenres.length;
+
+  if (isEn) {
+    return `Versatile across ${totalGenres} genres (Mainly: ${topGenres})`;
+  }
+  return `Đa dạng qua ${totalGenres} thể loại (Chủ yếu: ${topGenres})`;
 };
 
 export const ComparePage: React.FC = () => {
@@ -815,7 +890,7 @@ export const ComparePage: React.FC = () => {
                 <tbody className="divide-y divide-slate-800/80">
                   {/* Basic Info */}
                   <tr className="hover:bg-slate-900/40 transition">
-                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">{isEn ? 'Basic Info (Age / Active Years)' : 'Thông tin Cơ bản (Tuổi / Sự nghiệp)'}</td>
+                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">{isEn ? 'Age / Active Years' : 'Tuổi / Sự nghiệp'}</td>
                     <td className={`py-3.5 px-4 text-center font-medium border-r border-slate-800 ${stats.actorA_career_years > stats.actorB_career_years ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
                       {calculateAge(actorA.birthday)} &bull; {stats.actorA_career_years} {isEn ? 'active years' : 'năm hoạt động'}
                     </td>
@@ -826,7 +901,7 @@ export const ComparePage: React.FC = () => {
 
                   {/* Commercial Success */}
                   <tr className="hover:bg-slate-900/40 transition">
-                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">{isEn ? 'Commercial Success (Total Box Office)' : 'Thành công Thương mại (Tổng doanh thu)'}</td>
+                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">{isEn ? 'Total Box Office' : 'Tổng doanh thu'}</td>
                     <td className={`py-3.5 px-4 text-center border-r border-slate-800 ${parseMoneyNum(stats.actorA_box_office) > parseMoneyNum(stats.actorB_box_office) ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
                       <div>{formatRevenue(stats.actorA_box_office, isEn)}</div>
                       <span className="block text-[10px] text-slate-400 font-normal mt-0.5">{isEn ? 'Highest film:' : 'Phim cao nhất:'} {actorA.highest_grossing_movie || 'N/A'}</span>
@@ -839,7 +914,7 @@ export const ComparePage: React.FC = () => {
 
                   {/* Critical Rating Average */}
                   <tr className="hover:bg-slate-900/40 transition bg-slate-900/20">
-                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">{isEn ? 'Critic Rating (Avg IMDb)' : 'Đánh giá Chuyên môn (IMDb trung bình)'}</td>
+                    <td className="py-3.5 px-4 font-bold text-slate-300 border-r border-slate-800">{isEn ? 'Average IMDb ' : 'IMDb trung bình'}</td>
                     <td className={`py-3.5 px-4 text-center border-r border-slate-800 ${stats.actorA_avg_rating > stats.actorB_avg_rating ? 'text-amber-400 font-bold' : 'text-slate-100'}`}>
                       {stats.actorA_avg_rating} / 10 ({stats.actorA_total_movies} {isEn ? 'movies' : 'phim'})
                     </td>
@@ -848,20 +923,9 @@ export const ComparePage: React.FC = () => {
                     </td>
                   </tr>
 
-                  {/* Acting Style & Versatility */}
-                  <tr className="hover:bg-slate-900/40 transition">
-                    <td className="py-3 px-4 font-bold text-slate-300 border-r border-slate-800">{isEn ? 'Acting Style & Versatility' : 'Khả năng Biến hóa & Phong cách Diễn xuất'}</td>
-                    <td className="py-3 px-4 text-center text-xs text-slate-100 border-r border-slate-800">
-                      {actorA.acting_style || (isEn ? 'Immersive method acting and intense psychological depth.' : 'Phương pháp diễn xuất dấn thân và nhập vai nội tâm.')}
-                    </td>
-                    <td className="py-3 px-4 text-center text-xs text-slate-100">
-                      {actorB.acting_style || (isEn ? 'Charismatic screen presence and versatile role mastery.' : 'Phương pháp diễn xuất cuốn hút và thần thái lôi cuốn.')}
-                    </td>
-                  </tr>
-
                   {/* Landmark Iconic Works */}
                   <tr className="hover:bg-slate-900/40 transition bg-slate-900/20">
-                    <td className="py-3 px-4 font-bold text-slate-300 border-r border-slate-800">{isEn ? 'Landmark Works' : 'Tác phẩm Để đời'}</td>
+                    <td className="py-3 px-4 font-bold text-slate-300 border-r border-slate-800">{isEn ? 'Landmark Films' : 'Tác phẩm Để đời'}</td>
                     <td className="py-3 px-4 text-left text-xs text-slate-100 border-r border-slate-800">
                       <ul className="list-disc list-inside space-y-1">
                         {(actorA.landmark_works || ['Oppenheimer', 'Inception', 'Peaky Blinders']).map((w, idx) => (
@@ -929,7 +993,7 @@ export const ComparePage: React.FC = () => {
                   <div key={g.genre} className="space-y-1">
                     <div className="flex justify-between text-xs font-semibold text-slate-300">
                       <span className="text-amber-400">{g.actorA_count} {isEn ? 'movies' : 'phim'}</span>
-                      <span>{g.genre}</span>
+                      <span>{translateGenreName(g.genre, isEn)}</span>
                       <span className="text-cyan-400">{g.actorB_count} {isEn ? 'movies' : 'phim'}</span>
                     </div>
                     <div className="h-2.5 bg-slate-900 rounded-full overflow-hidden flex">
@@ -947,6 +1011,38 @@ export const ComparePage: React.FC = () => {
                 ));
               })()}
             </div>
+
+            {/* Genre Distribution Conclusion Box */}
+            {(() => {
+              const versA = getActorVersatility(actorA, isEn);
+              const versB = getActorVersatility(actorB, isEn);
+              if (!versA && !versB) return null;
+
+              return (
+                <div className="mt-6 pt-5 border-t border-slate-800/80 space-y-3 bg-slate-950/60 p-4 sm:p-5 rounded-2xl border border-amber-500/20">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
+                      {isEn ? 'Conclusion' : 'Kết luận'}
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {versA && (
+                      <div className="p-3 bg-slate-900/90 rounded-xl border border-amber-500/30">
+                        <span className="font-bold text-amber-300 block mb-1">{actorA.name}:</span>
+                        <span className="text-slate-200 font-medium">{versA}</span>
+                      </div>
+                    )}
+                    {versB && (
+                      <div className="p-3 bg-slate-900/90 rounded-xl border border-cyan-500/30">
+                        <span className="font-bold text-cyan-300 block mb-1">{actorB.name}:</span>
+                        <span className="text-slate-200 font-medium">{versB}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </section>
         </>
       )}
