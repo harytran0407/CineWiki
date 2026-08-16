@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NotificationDrawer } from './NotificationDrawer';
-import { AuthModal } from './AuthModal';
 import { Movie, Actor, Notification, User } from '../types';
 import { useTranslation } from 'react-i18next';
 import { getMovieTitle } from '../utils/langUtils';
@@ -601,17 +600,6 @@ export const Header: React.FC<HeaderProps> = ({
           notifications={notifications}
           onClose={() => setShowNotifDrawer(false)}
           onMarkRead={onMarkNotificationRead}
-        />
-      )}
-
-      {/* Auth Modal */}
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onLoginSuccess={(userData) => {
-            setUser(userData);
-            localStorage.setItem('cinewiki_user', JSON.stringify(userData));
-          }}
         />
       )}
     </header>

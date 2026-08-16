@@ -2,15 +2,15 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load .env from server directory or root directory
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 import express from 'express';
 import cors from 'cors';
 import { getTrendingMovies, getUpcomingMovies, getMovieDetails, searchAll, filterMovies, compareMovies, getUniverseContent } from './controllers/movieController';
-import { getPopularActors, getActorDetails, compareActors, getActorNetworkGraph, translateText, enrichActorInsight, chatWithAIController } from './controllers/actorController';
-import { getFollows, toggleFollowActor, getNotifications, markNotificationRead, loginOrRegister } from './controllers/userController';
-import { CronService } from './services/cronService';
+import { getPopularActors, getActorDetails, compareActors, getActorNetworkGraph, translateText, enrichActorInsight, chatWithAIController, chatWithAIStreamController } from './controllers/actorController';
+import { getFollows, toggleFollowActor, getNotifications, markNotificationRead } from './controllers/userController';
+import { handleCronNotifications } from './controllers/cronController';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -56,6 +56,7 @@ app.get('/api/actors/:id', getActorDetails);
 app.post('/api/ai/translate', aiRateLimiter, translateText);
 app.post('/api/ai/enrich-actor', aiRateLimiter, enrichActorInsight);
 app.post('/api/ai/chat', aiRateLimiter, chatWithAIController);
+app.post('/api/ai/chat/stream', aiRateLimiter, chatWithAIStreamController);
 
 // User, Follows & Notifications
 app.get('/api/user/follows', getFollows);
@@ -64,15 +65,14 @@ app.get('/api/user/notifications', getNotifications);
 app.get('/api/notifications', getNotifications); // Route alias
 app.post('/api/user/notifications/read', markNotificationRead);
 app.post('/api/notifications/read', markNotificationRead); // Route alias
-app.post('/api/auth/login', loginOrRegister);
+
+// Vercel Cron Endpoint
+app.get('/api/cron/notifications', handleCronNotifications);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'CineWiki Proxy Backend', time: new Date().toISOString() });
 });
-
-// Initialize Background Cron Engine
-CronService.initBackgroundJobs();
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {

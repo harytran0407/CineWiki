@@ -814,14 +814,14 @@ export class TMDBService {
       movieA,
       movieB,
       stats: {
-        movieA_rating: movieA.vote_average || 7.5,
-        movieB_rating: movieB.vote_average || 7.5,
-        movieA_box_office: movieA.box_office || '$850 Triệu USD',
-        movieB_box_office: movieB.box_office || '$1.2 Tỷ USD',
-        movieA_budget: movieA.budget || '$150 Triệu USD',
-        movieB_budget: movieB.budget || '$200 Triệu USD',
-        movieA_runtime: movieA.runtime || 120,
-        movieB_runtime: movieB.runtime || 135,
+        movieA_rating: movieA.vote_average || 0,
+        movieB_rating: movieB.vote_average || 0,
+        movieA_box_office: movieA.box_office || 'Chưa có dữ liệu',
+        movieB_box_office: movieB.box_office || 'Chưa có dữ liệu',
+        movieA_budget: movieA.budget || 'Chưa có dữ liệu',
+        movieB_budget: movieB.budget || 'Chưa có dữ liệu',
+        movieA_runtime: movieA.runtime || 0,
+        movieB_runtime: movieB.runtime || 0,
         box_office_winner: boxA >= boxB ? 'A' : 'B',
         rating_winner: (movieA.vote_average || 0) >= (movieB.vote_average || 0) ? 'A' : 'B'
       }
@@ -829,26 +829,84 @@ export class TMDBService {
   }
 
   static async getActorNetworkGraph(actorId: number) {
-    const actor = await this.getActorDetails(actorId);
-    const centerActorName = actor ? actor.name : 'Cillian Murphy';
+    try {
+      const apiKey = process.env.TMDB_API_KEY || 'd3c7110bb351e18591a6e6b2b567f156';
+      const actor = await this.getActorDetails(actorId);
+      const centerActorName = actor ? actor.name : 'Diễn viên';
 
-    return {
-      nodes: [
-        { id: actorId.toString(), name: centerActorName, group: 1, val: 20 },
-        { id: '3223', name: 'Robert Downey Jr.', group: 2, val: 15 },
-        { id: '6193', name: 'Leonardo DiCaprio', group: 2, val: 15 },
-        { id: '505710', name: 'Zendaya', group: 3, val: 12 },
-        { id: '1190668', name: 'Timothée Chalamet', group: 3, val: 12 },
-        { id: '1373737', name: 'Florence Pugh', group: 3, val: 12 }
-      ],
-      links: [
-        { source: actorId.toString(), target: '3223', movie_title: 'Oppenheimer', shared_count: 1 },
-        { source: actorId.toString(), target: '6193', movie_title: 'Inception', shared_count: 1 },
-        { source: '3223', target: '1373737', movie_title: 'Oppenheimer', shared_count: 1 },
-        { source: '505710', target: '1190668', movie_title: 'Dune: Part Two', shared_count: 2 },
-        { source: '1190668', target: '1373737', movie_title: 'Dune: Part Two', shared_count: 1 }
-      ]
-    };
+      // Fetch actor's movie credits
+      const creditsRes = await axios.get(
+        `https://api.themoviedb.org/3/person/${actorId}/movie_credits?api_key=${apiKey}&language=vi-VN`
+      );
+
+      const castFilms = creditsRes.data?.cast || [];
+      const topFilms = [...castFilms]
+        .sort((a: any, b: any) => (b.vote_count || 0) - (a.vote_count || 0))
+        .slice(0, 5);
+
+      const nodesMap = new Map<string, { id: string; name: string; group: number; val: number; profile_path?: string }>();
+      nodesMap.set(actorId.toString(), {
+        id: actorId.toString(),
+        name: centerActorName,
+        group: 1,
+        val: 20,
+        profile_path: actor?.profile_path
+      });
+
+      const links: { source: string; target: string; movie_title: string; shared_count: number }[] = [];
+
+      for (const film of topFilms) {
+        try {
+          const filmCreditsRes = await axios.get(
+            `https://api.themoviedb.org/3/movie/${film.id}/credits?api_key=${apiKey}`
+          );
+          const topCoStars = (filmCreditsRes.data?.cast || [])
+            .filter((c: any) => c.id !== actorId && c.profile_path)
+            .slice(0, 4);
+
+          for (const coStar of topCoStars) {
+            const coStarId = coStar.id.toString();
+            if (!nodesMap.has(coStarId)) {
+              nodesMap.set(coStarId, {
+                id: coStarId,
+                name: coStar.name,
+                group: 2,
+                val: 12,
+                profile_path: `https://image.tmdb.org/t/p/w185${coStar.profile_path}`
+              });
+            }
+
+            const existingLink = links.find(
+              (l) => (l.source === actorId.toString() && l.target === coStarId) || (l.source === coStarId && l.target === actorId.toString())
+            );
+
+            if (existingLink) {
+              existingLink.shared_count += 1;
+            } else {
+              links.push({
+                source: actorId.toString(),
+                target: coStarId,
+                movie_title: film.title || film.original_title || 'Phim',
+                shared_count: 1
+              });
+            }
+          }
+        } catch {
+          // Ignore individual movie failure
+        }
+      }
+
+      return {
+        nodes: Array.from(nodesMap.values()),
+        links
+      };
+    } catch (err) {
+      console.warn('[Network Graph Error]', (err as Error).message);
+      return {
+        nodes: [{ id: actorId.toString(), name: 'Diễn viên', group: 1, val: 20 }],
+        links: []
+      };
+    }
   }
 
   private static mapTMDBMovie(m: any, overrideMinVoteCount?: number, overrideMinVoteCountRecent?: number): Movie {
@@ -869,13 +927,13 @@ export class TMDBService {
       poster_path: m.poster_path ? (m.poster_path.startsWith('http') ? m.poster_path : `https://image.tmdb.org/t/p/w500${m.poster_path}`) : '',
       backdrop_path: m.backdrop_path ? (m.backdrop_path.startsWith('http') ? m.backdrop_path : `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`) : '',
       release_date: m.release_date || '',
-      runtime: m.runtime || 120,
+      runtime: m.runtime || 0,
       genres: m.genre_ids ? m.genre_ids.map((gid: number) => ({ id: gid, name: TMDB_GENRE_MAP[gid] || 'Cinema' })) : (m.genres || []),
-      director: 'Đạo diễn',
+      director: 'Chưa có dữ liệu',
       vote_average: score,
-      vote_count: isUpcoming ? 0 : (m.vote_count || 100),
+      vote_count: m.vote_count || 0,
       imdb_score: isUpcoming ? undefined : score,
-      weighted_rating: isUpcoming ? undefined : calculateWeightedRating(score, m.vote_count || 100, 2500, 6.9),
+      weighted_rating: isUpcoming ? undefined : calculateWeightedRating(score, m.vote_count || 0, 2500, 6.9),
       overview: m.overview || '',
       overview_vi: m.overview || '',
       cast: []
@@ -886,9 +944,9 @@ export class TMDBService {
     const auto = resolveVoteThresholds(m);
     const minVoteCount = overrideMinVoteCount ?? auto.minVoteCount;
     const minVoteCountRecent = overrideMinVoteCountRecent ?? auto.minVoteCountRecent;
-    const director = m.credits?.crew?.find((c: any) => c.job === 'Director')?.name || 'Director';
-    const writer = m.credits?.crew?.find((c: any) => c.job === 'Screenplay' || c.job === 'Writer')?.name || director;
-    const studio = m.production_companies?.[0]?.name || 'Film Studio';
+    const director = m.credits?.crew?.find((c: any) => c.job === 'Director')?.name || 'Chưa có dữ liệu';
+    const writer = m.credits?.crew?.find((c: any) => c.job === 'Screenplay' || c.job === 'Writer')?.name;
+    const studio = m.production_companies?.[0]?.name || 'Chưa có dữ liệu';
     const todayStr = new Date().toISOString().split('T')[0];
     const isUpcoming = (m.release_date && m.release_date > todayStr) || m.status === 'In Production' || m.status === 'Post Production' || m.status === 'Planned';
     const score = isUpcoming ? 0 : (m.vote_average ? Math.round(m.vote_average * 10) / 10 : 0);
@@ -914,20 +972,17 @@ export class TMDBService {
       poster_path: m.poster_path ? (m.poster_path.startsWith('http') ? m.poster_path : `https://image.tmdb.org/t/p/w500${m.poster_path}`) : '',
       backdrop_path: m.backdrop_path ? (m.backdrop_path.startsWith('http') ? m.backdrop_path : `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`) : '',
       release_date: m.release_date || '',
-      runtime: m.runtime || 120,
+      runtime: m.runtime || 0,
       genres: m.genres || [],
       director,
       writer,
       studio,
       vote_average: score,
-      vote_count: isUpcoming ? 0 : (m.vote_count || 100),
+      vote_count: m.vote_count || 0,
       imdb_score: isUpcoming ? undefined : score,
-      weighted_rating: isUpcoming ? undefined : calculateWeightedRating(score, m.vote_count || 100, 2500, 6.9),
-      rotten_tomatoes: isUpcoming ? undefined : {
-        tomatometer: Math.round((m.vote_average || 7.5) * 10),
-        audience_score: Math.round((m.vote_average || 7.5) * 10) + 2
-      },
-      metacritic_score: isUpcoming ? undefined : Math.round((m.vote_average || 7.5) * 9.5),
+      weighted_rating: isUpcoming ? undefined : calculateWeightedRating(score, m.vote_count || 0, 2500, 6.9),
+      rotten_tomatoes: undefined,
+      metacritic_score: undefined,
       budget: m.budget && m.budget > 0 ? (m.budget >= 1000000000 ? `$${(m.budget / 1000000000).toFixed(2).replace(/\.00$/, '')} Tỷ USD` : `$${(m.budget / 1000000).toFixed(0)} Triệu USD`) : undefined,
       box_office: m.revenue && m.revenue > 0 ? (m.revenue >= 1000000000 ? `$${(m.revenue / 1000000000).toFixed(2).replace(/\.00$/, '')} Tỷ USD` : `$${(m.revenue / 1000000).toFixed(0)} Triệu USD`) : undefined,
       overview: m.overview || '',
@@ -955,9 +1010,9 @@ export class TMDBService {
       place_of_birth: a.place_of_birth || knownInfo?.place_of_birth || '',
       nationality: knownInfo?.nationality || inferNationality(a.place_of_birth || knownInfo?.place_of_birth, undefined, a.known_for),
       known_for_department: a.known_for_department || 'Acting',
-      biography: a.biography || `${a.name} là một diễn viên tài năng.`,
+      biography: a.biography || `${a.name} là một diễn viên điện ảnh.`,
       biography_vi: knownInfo?.biography_vi,
-      popularity: a.popularity ? Math.round(a.popularity * 10) / 10 : 10,
+      popularity: a.popularity ? Math.round(a.popularity * 10) / 10 : 0,
       total_box_office: knownInfo?.total_box_office,
       landmark_works: knownInfo?.landmark_works,
       awards: knownInfo?.awards || [],
@@ -967,8 +1022,8 @@ export class TMDBService {
         title: k.title || k.name || 'Movie',
         original_title: k.original_title || k.title,
         year: k.release_date ? parseInt(k.release_date.split('-')[0], 10) : 2020,
-        character: 'Diễn viên',
-        vote_average: k.vote_average || 7.5,
+        character: k.character || 'Diễn viên',
+        vote_average: k.vote_average || 0,
         poster_path: k.poster_path ? `https://image.tmdb.org/t/p/w300${k.poster_path}` : '',
         genre: 'Cinema'
       })) : []
@@ -986,9 +1041,9 @@ export class TMDBService {
         id: f.id,
         title: f.title || f.original_title,
         original_title: f.original_title || f.title,
-        year: f.release_date ? parseInt(f.release_date.split('-')[0], 10) : 2020,
-        character: f.character || 'Lead Role',
-        vote_average: f.vote_average ? Math.round(f.vote_average * 10) / 10 : 7.0,
+        year: f.release_date ? parseInt(f.release_date.split('-')[0], 10) : 0,
+        character: f.character || 'Chưa có dữ liệu',
+        vote_average: f.vote_average ? Math.round(f.vote_average * 10) / 10 : 0,
         poster_path: rawImg ? (rawImg.startsWith('http') ? rawImg : `https://image.tmdb.org/t/p/w300${rawImg}`) : '',
         genre: resolveGenre(f.genre_ids)
       };
@@ -1005,18 +1060,18 @@ export class TMDBService {
 
     const landmark_works =
       knownInfo?.landmark_works ||
-      (dynamicLandmarks.length > 0 ? dynamicLandmarks : [`${a.name} (Top Works)`]);
+      (dynamicLandmarks.length > 0 ? dynamicLandmarks : undefined);
 
     const validYears = castFilms
       .map((f: any) => (f.release_date ? parseInt(f.release_date.split('-')[0], 10) : null))
       .filter((y: any): y is number => y !== null && !isNaN(y) && y > 1930);
-    const dynamicDebutYear = validYears.length > 0 ? Math.min(...validYears) : 1990;
+    const dynamicDebutYear = validYears.length > 0 ? Math.min(...validYears) : undefined;
 
     const dynamicHighestGrossing = sortedCast[0]
       ? `${sortedCast[0].title || sortedCast[0].original_title}`
-      : 'Blockbuster Film';
+      : undefined;
 
-    const estimatedBoxOffice = `$${Math.max(2.5, Math.round(castFilms.length * 0.15 * 10) / 10)} Tỷ USD`;
+    const estimatedBoxOffice = knownInfo?.total_box_office;
 
     const awards = knownInfo?.awards || [];
 
@@ -1037,9 +1092,9 @@ export class TMDBService {
       const activeStr = dynamicDebutYear
         ? (deathday ? `active from ${dynamicDebutYear} to ${endYear} (${yearsActive} years)` : `active from ${dynamicDebutYear} to present (${yearsActive} years)`)
         : '';
-      const boxOfficeEn = (knownInfo?.total_box_office || estimatedBoxOffice)
-        .replace('Tỷ USD', 'Billion USD')
-        .replace('Tr USD', 'Million USD');
+      const boxOfficeEn = knownInfo?.total_box_office
+        ? knownInfo.total_box_office.replace('Tỷ USD', 'Billion USD').replace('Tr USD', 'Million USD')
+        : '';
 
       const introEn = `${a.name} (${bDayStr} ${bPlaceStr}) was ${activeStr}. Across their career, ${a.name} starred in over ${castFilms.length} film and television productions with an estimated total box office of ${boxOfficeEn}.`.replace(/\s+/g, ' ').trim();
 

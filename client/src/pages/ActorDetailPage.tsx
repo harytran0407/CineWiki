@@ -20,6 +20,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
 
   const [actor, setActor] = useState<Actor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -418,28 +419,12 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
         </section>
       )}
 
-      {/* PHYSICAL OFFICIAL AWARDS SECTION ONLY */}
-      {realAwards.length > 0 && (
-        <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
-          <div className="flex items-center space-x-2">
-            <AwardIcon className="w-5 h-5 text-amber-400" />
-            <h2 className="text-xl font-extrabold text-slate-100">Giải thưởng</h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {realAwards.map((awd) => (
-              <div
-                key={awd.id || `${awd.name}-${awd.year}`}
-                className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1.5 shadow-md hover:border-slate-700 transition"
-              >
-                <h4 className="text-xs font-bold text-slate-100 truncate">{awd.name} ({awd.year})</h4>
-                <p className="text-[11px] text-amber-300 font-medium truncate">{awd.category}</p>
-                <p className="text-[10px] text-slate-400">Tác phẩm: <span className="text-slate-200 font-medium">{awd.movie_title}</span></p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* CineBot AI CTA Banner for Awards */}
+      <section className="glass-panel-glow rounded-3xl p-5 border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-slate-900/90 to-amber-950/40 text-center shadow-xl">
+        <p className="text-xs sm:text-sm font-extrabold text-amber-300 flex items-center justify-center space-x-2">
+          <span>{i18n.language?.startsWith('en') ? 'Want to know more information? Use CineBot AI!' : 'Muốn tìm hiểu thêm về các giải thưởng? Hãy sử dụng CineBot AI!'}</span>
+        </p>
+      </section>
 
       {/* Compare Actor Selection Modal (Identical Layout to Movie Compare Modal) */}
       {showCompareModal && createPortal(
@@ -457,8 +442,8 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                 <GitCompare className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-100">So Sánh Diễn Viên Với {actor.name}</h3>
-                <p className="text-xs text-slate-400">Chọn diễn viên để đối sánh sự nghiệp, giải thưởng và doanh thu</p>
+                <h3 className="text-lg font-black text-slate-100">{isEn ? `Compare Actor With ${actor.name}` : `So Sánh Diễn Viên Với ${actor.name}`}</h3>
+                <p className="text-xs text-slate-400">{isEn ? 'Select an actor to compare career, ratings, and box office' : 'Chọn diễn viên để đối sánh sự nghiệp, đánh giá và doanh thu'}</p>
               </div>
             </div>
 
@@ -468,12 +453,12 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                 type="text"
                 value={compareSearchQuery}
                 onChange={(e) => setCompareSearchQuery(e.target.value)}
-                placeholder="Nhập tên diễn viên bạn muốn so sánh..."
+                placeholder={isEn ? 'Type actor name to compare...' : 'Nhập tên diễn viên bạn muốn so sánh...'}
                 className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 focus:border-amber-400 rounded-lg text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none"
               />
               <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
               {isSearchingActors && (
-                <span className="absolute right-3.5 top-3 text-[10px] text-amber-400 font-bold animate-pulse">Đang tìm...</span>
+                <span className="absolute right-3.5 top-3 text-[10px] text-amber-400 font-bold animate-pulse">{isEn ? 'Searching...' : 'Đang tìm...'}</span>
               )}
             </div>
 
@@ -481,9 +466,9 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
               {compareSearchQuery.trim() ? (
                 <div>
-                  <span className="text-[10px] font-bold text-amber-400 block mb-2 uppercase tracking-wider">Kết quả tìm kiếm diễn viên</span>
+                  <span className="text-[10px] font-bold text-amber-400 block mb-2 uppercase tracking-wider">{isEn ? 'Actor Search Results' : 'Kết quả tìm kiếm diễn viên'}</span>
                   {compareSearchResults.length === 0 ? (
-                    <p className="text-xs text-slate-400 py-4 text-center">Không tìm thấy diễn viên phù hợp</p>
+                    <p className="text-xs text-slate-400 py-4 text-center">{isEn ? 'No matching actors found' : 'Không tìm thấy diễn viên phù hợp'}</p>
                   ) : (
                     <div className="grid grid-cols-1 gap-2">
                       {compareSearchResults.map((act) => (
@@ -498,9 +483,9 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                           <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <h4 className="text-xs font-bold text-slate-100 truncate">{act.name}</h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{act.known_for_department || 'Diễn viên'}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{act.known_for_department || (isEn ? 'Acting' : 'Diễn viên')}</p>
                           </div>
-                          <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">So sánh</span>
+                          <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">{isEn ? 'Compare' : 'So sánh'}</span>
                         </div>
                       ))}
                     </div>
@@ -508,7 +493,7 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                 </div>
               ) : (
                 <div>
-                  <span className="text-[10px] font-bold text-amber-400 block mb-2 uppercase tracking-wider">Diễn viên nổi tiếng gợi ý</span>
+                  <span className="text-[10px] font-bold text-amber-400 block mb-2 uppercase tracking-wider">{isEn ? 'Popular Actor Suggestions' : 'Diễn viên nổi tiếng gợi ý'}</span>
                   <div className="grid grid-cols-1 gap-2">
                     {popularCandidates.slice(0, 6).map((act) => (
                       <div
@@ -522,9 +507,9 @@ export const ActorDetailPage: React.FC<ActorDetailPageProps> = ({ userFollowIds,
                         <ImgWithFallback src={act.profile_path} type="profile" alt={act.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <h4 className="text-xs font-bold text-slate-100 truncate">{act.name}</h4>
-                          <p className="text-[10px] text-slate-400 mt-0.5">{act.known_for_department || 'Diễn viên'}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{act.known_for_department || (isEn ? 'Acting' : 'Diễn viên')}</p>
                         </div>
-                        <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">So sánh</span>
+                        <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">{isEn ? 'Compare' : 'So sánh'}</span>
                       </div>
                     ))}
                   </div>

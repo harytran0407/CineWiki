@@ -22,8 +22,13 @@ export interface AIInsight {
   }[];
 }
 
-// Token-efficient Gemini Flash Lite model endpoint
-const GEMINI_FAST_MODELS = ['gemini-flash-lite-latest', 'gemini-flash-latest'];
+// Valid & active Google Gemini API model names in v1beta
+const GEMINI_FAST_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-3.7-flash'
+];
 
 export class AIService {
   static async translateOrSummarize(text: string, targetLanguage: 'vi' | 'en' = 'vi'): Promise<string> {
@@ -35,23 +40,24 @@ export class AIService {
       targetLanguage === 'vi' ? 'Vietnamese' : 'English'
     } without adding any disclaimers or prefix metadata (keep concise):\n\n"${text}"`;
 
-    // 1. Google Gemini Lite API (Token efficient)
-    if (geminiKey) {
+    if (geminiKey && !geminiKey.includes('YOUR_GEMINI')) {
       for (const modelName of GEMINI_FAST_MODELS) {
         try {
           const response = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`,
-            { contents: [{ parts: [{ text: prompt }] }] }
+            {
+              contents: [{ role: 'user', parts: [{ text: prompt }] }]
+            }
           );
           const output = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (output) return output.trim();
-        } catch (err) {
-          console.warn(`[Gemini API Warning ${modelName}] ${(err as Error).message}`);
+        } catch (err: any) {
+          const apiErrMsg = err.response?.data?.error?.message || err.message;
+          console.warn(`[Gemini API Warning ${modelName}] ${apiErrMsg}`);
         }
       }
     }
 
-    // 2. OpenAI API
     if (openaiKey) {
       try {
         const response = await axios.post(
@@ -64,12 +70,11 @@ export class AIService {
         );
         const output = response.data?.choices?.[0]?.message?.content;
         if (output) return output.trim();
-      } catch (err) {
-        console.warn(`[OpenAI API Warning] ${(err as Error).message}`);
+      } catch (err: any) {
+        console.warn(`[OpenAI API Warning] ${err.response?.data?.error?.message || err.message}`);
       }
     }
 
-    // 3. Anthropic API
     if (anthropicKey) {
       try {
         const response = await axios.post(
@@ -90,12 +95,11 @@ export class AIService {
         if (response.data?.content?.[0]?.text) {
           return response.data.content[0].text;
         }
-      } catch (err) {
-        console.warn(`[Anthropic API Warning] ${(err as Error).message}`);
+      } catch (err: any) {
+        console.warn(`[Anthropic API Warning] ${err.response?.data?.error?.message || err.message}`);
       }
     }
 
-    // Fallback Translation
     if (targetLanguage === 'vi') {
       return text
         .replace(/is an Irish actor/gi, "là một nam diễn viên điện ảnh tài năng người Ireland")
@@ -118,13 +122,11 @@ export class AIService {
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
     const topFilms = actor.filmography?.slice(0, 6).map((f) => f.title).join(', ') || '';
-    const awardsList = actor.awards?.map((a) => `${a.name} (${a.year})`).join(', ') || '';
 
     const prompt = `Hãy đóng vai chuyên gia lịch sử điện ảnh vĩ đại. Hãy phân tích toàn diện và chính xác 100% về diễn viên "${actor.name}" (Các phim tiêu biểu: ${topFilms}).
 Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự thừa hay markdown) theo đúng cấu trúc tiếng Việt sau:
-- VỀ GIẢI THƯỞNG (awards): CHỈ LIỆT KÊ CÁC GIẢI THƯỞNG 100% CÓ THẬT TRONG LỊCH SỬ MÀ DIỄN VIÊN "${actor.name}" ĐÃ THỰC SỰ ĐOẠT GIẢI HOẶC ĐƯỢC ĐỀ CỬ (Ví dụ với Tom Holland: BAFTA EE Rising Star 2017, Saturn Awards, London Film Critics 2013, Empire Awards 2013, Teen Choice Awards...; Với Tom Hanks: Oscar 1994 & 1995, Quả Cầu Vàng...). TUYỆT ĐỐI KHÔNG TỰ BỊA ĐẶT HOẶC GÁN GIẢI OSCAR CHO DIỄN VIÊN CHƯA TỪNG ĐOẠT OSCAR!
 {
-  "biography_vi": "Tiểu sử điện ảnh chi tiết 3-4 câu bằng tiếng Việt vô cùng hấp dẫn và chính xác về cuộc đời và sự nghiệp của ${actor.name}.",
+  "biography_vi": "Tiểu sử điện ảnh chi tiết 3-4 câu bằng tiếng Việt hấp dẫn và chính xác về cuộc đời và sự nghiệp của ${actor.name}.",
   "summary_vi": "Tóm tắt 2 câu về vị thế nghệ thuật.",
   "acting_style_analysis": "Phân tích phong cách diễn xuất và nét đặc trưng.",
   "milestones": [
@@ -135,35 +137,27 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
   "trivia": [
     "Chuyện bên lề/hậu trường thú vị 1",
     "Chuyện bên lề/hậu trường thú vị 2"
-  ],
-  "awards": [
-    {
-      "id": "awd-ai-1",
-      "name": "Tên giải thưởng thực tế chính xác",
-      "category": "Hạng mục thực tế chính xác",
-      "year": 2017,
-      "movie_title": "Tên phim thực tế tương ứng",
-      "status": "won"
-    }
   ]
 }`;
 
     let textOutput = '';
 
-    // 1. Google Gemini API (Recommended)
-    if (geminiKey) {
-      try {
-        const response = await axios.post(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
-          { contents: [{ parts: [{ text: prompt }] }] }
-        );
-        textOutput = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      } catch (err) {
-        console.warn(`[Gemini API Insight Warning] ${(err as Error).message}`);
+    if (geminiKey && !geminiKey.includes('YOUR_GEMINI')) {
+      for (const m of GEMINI_FAST_MODELS) {
+        try {
+          const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiKey}`,
+            { contents: [{ role: 'user', parts: [{ text: prompt }] }] }
+          );
+          textOutput = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (textOutput) break;
+        } catch (err: any) {
+          const apiErrMsg = err.response?.data?.error?.message || err.message;
+          console.warn(`[Gemini API Insight Warning ${m}] ${apiErrMsg}`);
+        }
       }
     }
 
-    // 2. OpenAI API
     if (!textOutput && openaiKey) {
       try {
         const response = await axios.post(
@@ -175,12 +169,11 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
           { headers: { Authorization: `Bearer ${openaiKey}` } }
         );
         textOutput = response.data?.choices?.[0]?.message?.content || '';
-      } catch (err) {
-        console.warn(`[OpenAI API Insight Warning] ${(err as Error).message}`);
+      } catch (err: any) {
+        console.warn(`[OpenAI API Insight Warning] ${err.response?.data?.error?.message || err.message}`);
       }
     }
 
-    // 3. Anthropic API
     if (!textOutput && anthropicKey) {
       try {
         const response = await axios.post(
@@ -199,8 +192,8 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
           }
         );
         textOutput = response.data?.content?.[0]?.text || '';
-      } catch (err) {
-        console.warn(`[Anthropic API Insight Warning] ${(err as Error).message}`);
+      } catch (err: any) {
+        console.warn(`[Anthropic API Insight Warning] ${err.response?.data?.error?.message || err.message}`);
       }
     }
 
@@ -215,7 +208,6 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
       }
     }
 
-    // Fallback Generator
     const topWorksStr = actor.landmark_works?.slice(0, 3).join(', ') || actor.name + ' Masterpieces';
     return {
       biography_vi: `${actor.name} là một trong những biểu tượng nghệ thuật xuất sắc nhất thế giới. Với gia tài điện ảnh trải dài qua nhiều thập kỷ, nghệ sĩ đã cống hiến những vai diễn đi cùng năm tháng, khẳng định vị thế đỉnh cao qua các tác phẩm huyền thoại như ${topWorksStr}.`,
@@ -223,7 +215,7 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
       acting_style_analysis: `Phong cách diễn xuất của ${actor.name} nổi bật bởi khả năng khai thác chiều sâu tâm lý nhân vật nghiệt ngã, sự tỉ mỉ trong từng ánh mắt, cử chỉ và đài từ truyền cảm. Khả năng biến hóa đa dạng giúp nghệ sĩ dễ dàng làm chủ cả dòng phim độc lập nghệ thuật lẫn các siêu bom tấn thương mại.`,
       milestones: [
         `Khởi nghiệp chính thức từ năm ${actor.debut_year || 1995} và nhanh chóng khẳng định thực lực qua các vai diễn góc cạnh.`,
-        `Chinh phục giới chuyên môn thế giới với chuỗi tác phẩm kinh điển đạt tổng doanh thu phòng vé ${actor.total_box_office || '$3.5 Tỷ USD'}.`,
+        `Chinh phục giới chuyên môn thế giới với chuỗi tác phẩm kinh điển.`,
         `Thiết lập vị thế biểu tượng văn hóa đại chúng với danh mục tác phẩm tiêu biểu như ${topWorksStr}.`
       ],
       trivia: [
@@ -234,42 +226,94 @@ Hãy trả về duy nhất 1 JSON object hợp lệ (không chứa ký tự th�
     };
   }
 
-  static async chatWithAI(message: string, history: { role: string; content: string }[] = []): Promise<AIChatResult> {
+  static async chatWithAI(
+    message: string,
+    history: { role: string; content: string }[] = [],
+    contextData?: {
+      title?: string;
+      name?: string;
+      overview?: string;
+      cast?: string;
+      rating?: number;
+      releaseDate?: string;
+      genres?: string;
+    }
+  ): Promise<AIChatResult> {
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    const systemPrompt = `Bạn là CineBot AI - Trợ lý điện ảnh thông minh, sành sỏi của CineWiki. Hãy trả lời ngắn gọn (2-3 câu), thân thiện, súc tích bằng tiếng Việt về phim, diễn viên, đạo diễn và giải thưởng Oscar.
+    let ragContextString = '';
+    if (contextData) {
+      ragContextString = `\n\n[DỮ LIỆU THẬT TỪ TMDB ĐỂ TRẢ LỜI RAG CỤ THỂ]:
+- Tên/Tiêu đề: ${contextData.title || contextData.name || 'Không xác định'}
+- Ngày phát hành/Năm sinh: ${contextData.releaseDate || 'N/A'}
+- Điểm đánh giá TMDB: ${contextData.rating != null ? contextData.rating : 'N/A'}
+- Dàn diễn viên / Thể loại: ${contextData.cast || contextData.genres || 'N/A'}
+- Tóm tắt/Thông tin: ${contextData.overview || 'N/A'}`;
+    }
+
+    const systemPrompt = `Bạn là CineBot AI - Trợ lý điện ảnh thông minh, sành sỏi của CineWiki. Hãy trả lời ngắn gọn (2-3 câu), thân thiện, súc tích bằng tiếng Việt về phim, diễn viên, đạo diễn và giải thưởng Oscar. Hãy dựa vào dữ liệu thực tế từ TMDB bên dưới để trả lời chính xác, tránh tự bịa thông tin.${ragContextString}
 Sau phần trả lời chính, hãy ĐỀ XUẤT ĐÚNG 3 CÂU HỎI GỢI Ý TIẾP THEO (Follow-up Questions) ngắn gọn liên quan trực tiếp đến nội dung câu trả lời. Không chèn biểu tượng emoji hay icon vào câu hỏi.
 Định dạng dòng cuối cùng chính xác như sau:
 FOLLOW_UP: [Câu hỏi gợi ý 1] | [Câu hỏi gợi ý 2] | [Câu hỏi gợi ý 3]`;
 
-    const contents = [
-      { parts: [{ text: systemPrompt }] },
-      ...history.map((h) => ({
-        parts: [{ text: `${h.role === 'user' ? 'Khán giả' : 'CineBot'}: ${h.content}` }]
-      })),
-      { parts: [{ text: `Khán giả: ${message}` }] }
-    ];
-
     let rawOutput = '';
+    let lastErrorDetails = '';
 
-    if (geminiKey) {
+    if (geminiKey && !geminiKey.includes('YOUR_GEMINI')) {
       for (const m of GEMINI_FAST_MODELS) {
         try {
-          const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiKey}`,
-            { contents }
-          );
+          const contentsPayload = [
+            ...history.map((h) => ({
+              role: h.role === 'user' ? 'user' : 'model',
+              parts: [{ text: h.content }]
+            })),
+            {
+              role: 'user',
+              parts: [{ text: message }]
+            }
+          ];
+
+          let response;
+          try {
+            response = await axios.post(
+              `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiKey}`,
+              {
+                system_instruction: { parts: [{ text: systemPrompt }] },
+                contents: contentsPayload
+              }
+            );
+          } catch {
+            response = await axios.post(
+              `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiKey}`,
+              {
+                contents: [
+                  ...history.map((h) => ({
+                    role: h.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: h.content }]
+                  })),
+                  {
+                    role: 'user',
+                    parts: [{ text: `${systemPrompt}\n\n${message}` }]
+                  }
+                ]
+              }
+            );
+          }
           const output = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (output) {
             rawOutput = output.trim();
             break;
           }
-        } catch (err) {
-          console.warn(`[Gemini Chat ${m} Warning] ${(err as Error).message}`);
+        } catch (err: any) {
+          const apiErrMsg = err.response?.data?.error?.message || err.message;
+          lastErrorDetails = `[Gemini ${m} Error]: ${apiErrMsg}`;
+          console.warn(`[Gemini Chat ${m} Warning] ${apiErrMsg}`);
         }
       }
+    } else {
+      lastErrorDetails = 'Chưa cấu hình GEMINI_API_KEY hợp lệ trong file .env';
     }
 
     if (!rawOutput && openaiKey) {
@@ -283,13 +327,41 @@ FOLLOW_UP: [Câu hỏi gợi ý 1] | [Câu hỏi gợi ý 2] | [Câu hỏi gợi
           { headers: { Authorization: `Bearer ${openaiKey}` } }
         );
         rawOutput = response.data?.choices?.[0]?.message?.content || '';
-      } catch (err) {
-        console.warn(`[OpenAI Chat Warning] ${(err as Error).message}`);
+      } catch (err: any) {
+        const apiErrMsg = err.response?.data?.error?.message || err.message;
+        lastErrorDetails = `[OpenAI Error]: ${apiErrMsg}`;
+        console.warn(`[OpenAI Chat Warning] ${apiErrMsg}`);
+      }
+    }
+
+    if (!rawOutput && anthropicKey) {
+      try {
+        const response = await axios.post(
+          'https://api.anthropic.com/v1/messages',
+          {
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 800,
+            system: systemPrompt,
+            messages: history.map(h => ({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content })).concat([{ role: 'user', content: message }])
+          },
+          {
+            headers: {
+              'x-api-key': anthropicKey,
+              'anthropic-version': '2023-06-01',
+              'content-type': 'application/json'
+            }
+          }
+        );
+        rawOutput = response.data?.content?.[0]?.text || '';
+      } catch (err: any) {
+        const apiErrMsg = err.response?.data?.error?.message || err.message;
+        lastErrorDetails = `[Anthropic Error]: ${apiErrMsg}`;
+        console.warn(`[Anthropic Chat Warning] ${apiErrMsg}`);
       }
     }
 
     if (!rawOutput) {
-      rawOutput = `CineBot AI: Xin chào! Tôi có thể giải đáp thông tin điện ảnh, diễn viên nổi tiếng, doanh thu bom tấn hay các tác phẩm đoạt giải Oscar. Bạn muốn tìm hiểu tác phẩm hay tài tử nào?`;
+      throw new Error(`Tất cả dịch vụ AI không khả dụng. Chi tiết: ${lastErrorDetails || 'API Key chưa chính xác'}`);
     }
 
     // Parse text & extract follow-up questions
@@ -344,28 +416,28 @@ FOLLOW_UP: [Câu hỏi gợi ý 1] | [Câu hỏi gợi ý 2] | [Câu hỏi gợi
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
     const yearHint = releaseYear ? ` (ra mắt năm ${releaseYear.split('-')[0]})` : '';
-    const prompt = `Bạn là chuyên gia lịch sử điện ảnh. Liệt kê CÁC GIẢI THƯỞNG ĐIỆN ẢNH MÀ BỘ PHIM "${movieTitle}"${yearHint} ĐÃ THỰC SỰ GIÀNH CHIẾN THẮNG (WON/WINNER ONLY — BAO GỒM CẢ GIẢI THƯỞNG LỚN VÀ GIẢI PHÊ BÌNH NHỎ LẺ, MIỄN LÀ THỰC SỰ GIÀNH CHIẾN THẮNG. KHÔNG GIỚI HẠN SỐ LƯỢNG, TUYỆT ĐỐI KHÔNG LẤY CÁC GIẢI CHỈ ĐƯỢC ĐỀ CỬ NOMINATED).
-Trả về ĐÚNG JSON array (không có markdown, không có text thêm vào):
+    const prompt = `Bạn là chuyên gia lịch sử điện ảnh. Liệt kê CÁC GIẢI THƯỞNG ĐIỆN ẢNH MÀ BỘ PHIM "${movieTitle}"${yearHint} ĐÃ THỰC SỰ GIÀNH CHIẾN THẮNG (WON/WINNER ONLY).
+Trả về ĐÚNG JSON array:
 [
-  {"name": "Tên giải thưởng đầy đủ", "category": "Hạng mục cụ thể", "year": 2024},
-  ...
+  {"name": "Tên giải thưởng đầy đủ", "category": "Hạng mục cụ thể", "year": 2024}
 ]
 Nếu không có thông tin chắc chắn, trả về mảng rỗng: []`;
 
     let textOutput = '';
 
-    if (geminiKey) {
+    if (geminiKey && !geminiKey.includes('YOUR_GEMINI')) {
       for (const modelName of GEMINI_FAST_MODELS) {
         try {
           const response = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`,
-            { contents: [{ parts: [{ text: prompt }] }] },
+            { contents: [{ role: 'user', parts: [{ text: prompt }] }] },
             { timeout: 8000 }
           );
           textOutput = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
           if (textOutput) break;
-        } catch (err) {
-          console.warn(`[Gemini Awards ${modelName}] ${(err as Error).message}`);
+        } catch (err: any) {
+          const apiErrMsg = err.response?.data?.error?.message || err.message;
+          console.warn(`[Gemini Awards ${modelName}] ${apiErrMsg}`);
         }
       }
     }
@@ -378,8 +450,8 @@ Nếu không có thông tin chắc chắn, trả về mảng rỗng: []`;
           { headers: { Authorization: `Bearer ${openaiKey}` }, timeout: 8000 }
         );
         textOutput = response.data?.choices?.[0]?.message?.content || '';
-      } catch (err) {
-        console.warn(`[OpenAI Awards] ${(err as Error).message}`);
+      } catch (err: any) {
+        console.warn(`[OpenAI Awards] ${err.response?.data?.error?.message || err.message}`);
       }
     }
 
@@ -391,13 +463,12 @@ Nếu không có thông tin chắc chắn, trả về mảng rỗng: []`;
           { headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 8000 }
         );
         textOutput = response.data?.content?.[0]?.text || '';
-      } catch (err) {
-        console.warn(`[Anthropic Awards] ${(err as Error).message}`);
+      } catch (err: any) {
+        console.warn(`[Anthropic Awards] ${err.response?.data?.error?.message || err.message}`);
       }
     }
 
     if (textOutput) {
-      // Extract JSON array from response
       const jsonMatch = textOutput.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         try {
@@ -416,39 +487,9 @@ Nếu không có thông tin chắc chắn, trả về mảng rỗng: []`;
     return [];
   }
 
-  private static imdbRatingCache = new Map<string, number>();
-
   static async getVerifiedImdbScoreWithAI(movieId: number, title: string, releaseDate?: string, tmdbAvg?: number): Promise<number> {
     const todayStr = new Date().toISOString().split('T')[0];
     if (releaseDate && releaseDate > todayStr) return 0;
-
-    const cacheKey = `${movieId}_${title}`;
-    if (this.imdbRatingCache.has(cacheKey)) {
-      return this.imdbRatingCache.get(cacheKey)!;
-    }
-
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (geminiKey && title) {
-      try {
-        const prompt = `What is the exact official IMDb rating for the movie "${title}" (${releaseDate ? releaseDate.split('-')[0] : ''})? Return ONLY a single number like 9.2, 9.3, 9.0, 8.8, 8.6, or 0 if unreleased/upcoming. Do not add any words or markdown, only output the number:`;
-        const response = await axios.post(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${geminiKey}`,
-          { contents: [{ parts: [{ text: prompt }] }] },
-          { timeout: 5000 }
-        );
-        const textOutput = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        const score = parseFloat(textOutput);
-        if (!isNaN(score) && score >= 0 && score <= 10) {
-          this.imdbRatingCache.set(cacheKey, score);
-          return score;
-        }
-      } catch (err) {
-        console.warn(`[AI Rating Verify Warning for ${title}]`, (err as Error).message);
-      }
-    }
-
-    const fallback = tmdbAvg ? Math.round(tmdbAvg * 10) / 10 : 0;
-    this.imdbRatingCache.set(cacheKey, fallback);
-    return fallback;
+    return tmdbAvg ? Math.round(tmdbAvg * 10) / 10 : 0;
   }
 }

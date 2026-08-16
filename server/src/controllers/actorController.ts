@@ -94,14 +94,49 @@ export const enrichActorInsight = async (req: Request, res: Response) => {
 
 export const chatWithAIController = async (req: Request, res: Response) => {
   try {
-    const { message, history } = req.body;
+    const { message, history, contextData } = req.body;
     if (!message) {
       return res.status(400).json({ success: false, message: 'Message is required' });
     }
 
-    const result = await AIService.chatWithAI(message, history || []);
+    const result = await AIService.chatWithAI(message, history || [], contextData);
     return res.json({ success: true, reply: result.reply, followUpQuestions: result.followUpQuestions });
   } catch (error) {
     return res.status(500).json({ success: false, message: (error as Error).message });
+  }
+};
+
+export const chatWithAIStreamController = async (req: Request, res: Response) => {
+  try {
+    const { message, history, contextData } = req.body;
+    if (!message) {
+      return res.status(400).json({ success: false, message: 'Message is required' });
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const result = await AIService.chatWithAI(message, history || [], contextData);
+
+    // Stream out chunks to simulated SSE / Chunked stream
+    const replyText = result.reply;
+    const words = replyText.split(' ');
+
+    for (let i = 0; i < words.length; i += 3) {
+      const chunk = words.slice(i, i + 3).join(' ') + ' ';
+      res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      await new Promise((r) => setTimeout(r, 40));
+    }
+
+    res.write(`data: ${JSON.stringify({ done: true, followUpQuestions: result.followUpQuestions })}\n\n`);
+    res.end();
+  } catch (error) {
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: (error as Error).message });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
+      res.end();
+    }
   }
 };

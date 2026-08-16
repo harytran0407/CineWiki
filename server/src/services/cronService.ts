@@ -1,49 +1,40 @@
-import cron from 'node-cron';
 import { TMDBService } from './tmdbService';
 import { Notification } from '../types';
 
 let userNotifications: Notification[] = [];
 
 export class CronService {
-  static initBackgroundJobs() {
-    console.log('⏰ [Cron Service] Background worker initialized. Scanning actor updates every 6 hours...');
-
-    cron.schedule('0 */6 * * *', () => {
-      this.checkIdolUpdates();
-    });
-
-    setTimeout(() => {
-      this.checkIdolUpdates();
-    }, 10000);
-  }
-
-  static async checkIdolUpdates() {
-    console.log('🔍 [Cron Service] Checking upcoming movies & award updates for followed idols...');
+  static async checkUpcomingMovieUpdates(): Promise<Notification[]> {
+    console.log('🔍 [Cron Service] Fetching real upcoming movie releases from TMDB...');
     try {
-      const popularActors = await TMDBService.getPopularActors('vi-VN');
-      if (popularActors && popularActors.length > 0) {
-        const randomActor = popularActors[Math.floor(Math.random() * popularActors.length)];
-        const newNotif: Notification = {
-          id: `cron-notif-${Date.now()}`,
+      const upcomingRes = await TMDBService.getUpcomingMovies('vi-VN', 1);
+      const moviesList = upcomingRes?.movies || [];
+      if (moviesList.length > 0) {
+        const newNotifs: Notification[] = moviesList.slice(0, 5).map((movie: any) => ({
+          id: `cron-notif-${movie.id}`,
           user_id: 'all',
-          actor_id: randomActor.id,
-          actor_name: randomActor.name,
-          actor_profile: randomActor.profile_path,
+          actor_id: movie.id,
+          actor_name: movie.title,
+          actor_profile: movie.poster_path,
           type: 'new_movie',
-          title: 'Upcoming Project Status Update',
-          content: `${randomActor.name} has entered post-production for their new upcoming blockbuster film!`,
-          content_vi: `${randomActor.name} vừa chính thức bước vào giai đoạn hậu kỳ cho dự án phim bom tấn sắp ra mắt!`,
-          target_id: randomActor.id,
+          title: `Phim sắp ra mắt: ${movie.title}`,
+          content: `${movie.title} dự kiến khởi chiếu vào ngày ${movie.release_date || 'sắp tới'}.`,
+          content_vi: `${movie.title} dự kiến khởi chiếu vào ngày ${movie.release_date || 'sắp tới'}.`,
+          target_id: movie.id,
           is_read: false,
           created_at: new Date().toISOString()
-        };
+        }));
 
-        userNotifications.unshift(newNotif);
-        console.log(`✅ [Cron Service] New notification pushed for ${randomActor.name}`);
+        for (const notif of newNotifs) {
+          if (!userNotifications.some((n) => n.id === notif.id)) {
+            userNotifications.unshift(notif);
+          }
+        }
       }
     } catch (err) {
       console.warn('[Cron Service Error]', err);
     }
+    return userNotifications;
   }
 
   static getNotifications(userId: string = 'demo-user'): Notification[] {

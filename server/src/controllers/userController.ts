@@ -83,33 +83,4 @@ export const markNotificationRead = async (req: Request, res: Response) => {
   }
 };
 
-export const loginOrRegister = async (req: Request, res: Response) => {
-  try {
-    const { email, password, name } = req.body;
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-      return res.status(400).json({ success: false, message: 'Địa chỉ email không hợp lệ.' });
-    }
-
-    if (password && password.length < 4) {
-      return res.status(400).json({ success: false, message: 'Mật khẩu phải có ít nhất 4 ký tự.' });
-    }
-
-    const userId = `user_${Buffer.from(email).toString('hex').substring(0, 8)}`;
-
-    res.json({
-      success: true,
-      user: {
-        id: userId,
-        email,
-        name: name || email.split('@')[0] || 'Cinephile Star',
-        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-      },
-      token: `cw_session_${Date.now()}_${userId}`
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: (error as Error).message });
-  }
-};

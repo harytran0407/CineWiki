@@ -5,12 +5,13 @@ import { Movie } from '../types';
 import { ImgWithFallback } from '../components/ImgWithFallback';
 import { useTranslation } from 'react-i18next';
 import { getMovieTitle } from '../utils/langUtils';
-import { Star, Clock, Calendar, Play, ArrowLeft, X, DollarSign, User, Award, Film, Sliders, Trophy, GitCompare, Search, Globe } from 'lucide-react';
+import { Star, Clock, Calendar, Play, ArrowLeft, X, DollarSign, User, Award, Film, Sliders, Trophy, GitCompare, Search, Globe, Sparkles } from 'lucide-react';
 
 export const MovieDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith('en');
 
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,35 +157,32 @@ export const MovieDetailPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300 pt-2">
               <div className="flex items-center space-x-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
                 <User className="w-4 h-4 text-amber-400" />
-                <span>Đạo diễn: <strong className="text-white">{movie.director || 'Chưa rõ'}</strong></span>
+                <span>{isEn ? 'Director:' : 'Đạo diễn:'} <strong className="text-white">{movie.director || (isEn ? 'Unknown' : 'Chưa rõ')}</strong></span>
               </div>
 
               {movie.writer && (
                 <div className="flex items-center space-x-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
                   <Film className="w-4 h-4 text-cyan-400" />
-                  <span>Biên kịch: <strong className="text-white">{movie.writer}</strong></span>
+                  <span>{isEn ? 'Writer:' : 'Biên kịch:'} <strong className="text-white">{movie.writer}</strong></span>
                 </div>
               )}
 
-              <div className="flex items-center space-x-4 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                <span className="flex items-center space-x-1">
-                  <Calendar className="w-4 h-4 text-slate-400 mr-1" />
-                  {movie.release_date || 'N/A'}
-                </span>
-                <span>&bull;</span>
-                <span className="flex items-center space-x-1">
-                  <Clock className="w-4 h-4 text-slate-400 mr-1" />
-                  {movie.runtime} phút
-                </span>
+              <div className="flex items-center space-x-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                <Calendar className="w-4 h-4 text-amber-400" />
+                <span>{isEn ? 'Release Date:' : 'Thời điểm phát hành:'} <strong className="text-white">{movie.release_date || 'N/A'}</strong></span>
+              </div>
+
+              <div className="flex items-center space-x-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                <Clock className="w-4 h-4 text-cyan-400" />
+                <span>{isEn ? 'Runtime:' : 'Thời lượng phim:'} <strong className="text-white">{movie.runtime ? `${movie.runtime} ${isEn ? 'mins' : 'phút'}` : (isEn ? 'N/A' : 'Chưa có dữ liệu')}</strong></span>
               </div>
 
               <div className="flex items-center space-x-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
                 <Globe className="w-4 h-4 text-emerald-400" />
-                <span>{i18n.language?.startsWith('en') ? 'Country:' : 'Quốc gia:'} <strong className="text-white">
+                <span>{isEn ? 'Country:' : 'Quốc gia:'} <strong className="text-white">
                   {(() => {
                     const code = Array.isArray(movie.origin_country) ? movie.origin_country[0] : movie.origin_country;
                     const lang = movie.original_language;
-                    const isEn = i18n.language?.startsWith('en');
                     if (code === 'VN' || lang === 'vi') return isEn ? 'Vietnam' : 'Việt Nam';
                     if (code === 'US' || (lang === 'en' && code !== 'GB')) return isEn ? 'United States' : 'Mỹ';
                     if (code === 'GB') return isEn ? 'United Kingdom' : 'Anh';
@@ -202,7 +200,7 @@ export const MovieDetailPage: React.FC = () => {
                 <div className="flex items-center space-x-2 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/30">
                   <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                   <span className="font-bold text-amber-300">{movie.vote_average.toFixed(1)} / 10</span>
-                  {movie.vote_count > 0 && <span className="text-slate-400">({(movie.vote_count).toLocaleString()} lượt)</span>}
+                  {movie.vote_count > 0 && <span className="text-slate-400">({(movie.vote_count).toLocaleString()} {isEn ? 'votes' : 'lượt'})</span>}
                 </div>
               )}
             </div>
@@ -214,7 +212,7 @@ export const MovieDetailPage: React.FC = () => {
                   className="inline-flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-bold rounded-2xl text-xs shadow-lg transition transform active:scale-95 cursor-pointer"
                 >
                   <Play className="w-4 h-4 fill-slate-950" />
-                  <span>Xem Trailer</span>
+                  <span>{isEn ? 'Watch Trailer' : 'Xem Trailer'}</span>
                 </button>
               )}
 
@@ -223,65 +221,54 @@ export const MovieDetailPage: React.FC = () => {
                 className="inline-flex items-center space-x-2 px-5 py-2.5 bg-slate-900/90 hover:bg-slate-800 text-cyan-400 border border-cyan-500/40 font-bold rounded-2xl text-xs shadow-lg transition transform active:scale-95 cursor-pointer"
               >
                 <GitCompare className="w-4 h-4 text-cyan-400" />
-                <span>So sánh bộ phim này</span>
+                <span>{isEn ? 'Compare This Movie' : 'So sánh bộ phim này'}</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ② Đánh giá & Tài chính — moved before overview */}
+      {/* ② Đánh giá & Tài chính */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {(movie.vote_average && movie.vote_average > 0) ? (
           <section className="glass-panel rounded-3xl p-6 border border-slate-800 space-y-4">
-            <h3 className="text-lg font-extrabold text-slate-100">⭐ Đánh giá &amp; Điểm số</h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center space-y-1">
-                <span className="text-[10px] font-bold text-amber-400 block uppercase">IMDb</span>
-                <span className="text-xl font-black text-amber-300">⭐ {movie.imdb_score || movie.vote_average || 'N/A'}</span>
-                <span className="text-[9px] text-slate-400 block">Thang điểm 10</span>
+            <h3 className="text-lg font-extrabold text-slate-100">{isEn ? '⭐ Ratings & Score' : '⭐ Đánh giá & Điểm số'}</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center space-y-1">
+                <span className="text-xs font-bold text-amber-400 block uppercase">{isEn ? 'TMDB Rating' : 'Đánh giá TMDB'}</span>
+                <span className="text-2xl font-black text-amber-300">⭐ {movie.vote_average || 'N/A'}</span>
+                <span className="text-[10px] text-slate-400 block">{isEn ? '10-point scale' : 'Thang điểm 10'}</span>
               </div>
-              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-center space-y-1">
-                <span className="text-[10px] font-bold text-rose-400 block uppercase">Rotten Tomatoes</span>
-                <span className="text-base sm:text-xl font-black text-rose-300">
-                  🍅 {movie.rotten_tomatoes?.tomatometer != null ? `${movie.rotten_tomatoes.tomatometer}%` : 'N/A'}
-                </span>
-                <span className="text-[9px] text-slate-400 block">
-                  Audience: {movie.rotten_tomatoes?.audience_score != null ? `${movie.rotten_tomatoes.audience_score}%` : 'N/A'}
-                </span>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-1">
-                <span className="text-[10px] font-bold text-emerald-400 block uppercase">Metacritic</span>
-                <span className="text-base sm:text-xl font-black text-emerald-300">
-                  🟢 {movie.metacritic_score != null ? movie.metacritic_score : 'N/A'}
-                </span>
-                <span className="text-[9px] text-slate-400 block">Metascore</span>
+              <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-center space-y-1">
+                <span className="text-xs font-bold text-cyan-400 block uppercase">{isEn ? 'Vote Count' : 'Lượt đánh giá'}</span>
+                <span className="text-2xl font-black text-cyan-300">👥 {movie.vote_count ? movie.vote_count.toLocaleString() : 'N/A'}</span>
+                <span className="text-[10px] text-slate-400 block">{isEn ? 'Verified by TMDB' : 'Xác thực từ TMDB'}</span>
               </div>
             </div>
           </section>
         ) : (
           <section className="glass-panel rounded-3xl p-6 border border-slate-800 flex items-center justify-center">
             <div className="text-center space-y-2">
-              <p className="text-sm font-bold text-cyan-300">Phim Sắp Ra Mắt</p>
-              <p className="text-xs text-slate-400">Chưa có điểm đánh giá — hãy quay lại sau khi phim khởi chiếu!</p>
+              <p className="text-sm font-bold text-cyan-300">{isEn ? 'Upcoming Release' : 'Phim Sắp Ra Mắt'}</p>
+              <p className="text-xs text-slate-400">{isEn ? 'No rating available — check back after release!' : 'Chưa có điểm đánh giá — hãy quay lại sau khi phim khởi chiếu!'}</p>
             </div>
           </section>
         )}
 
         <section className="glass-panel rounded-3xl p-6 border border-slate-800 space-y-4">
-          <h3 className="text-lg font-extrabold text-slate-100"> Doanh thu phòng vé</h3>
+          <h3 className="text-lg font-extrabold text-slate-100">{isEn ? ' Box Office & Financials' : ' Doanh thu phòng vé'}</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
               <span className="text-xs font-semibold text-slate-400 flex items-center space-x-1">
-                <span>Ngân sách (Budget)</span>
+                <span>{isEn ? 'Budget' : 'Ngân sách'}</span>
               </span>
-              <span className="text-base font-bold text-slate-100 block">{movie.budget || 'Chưa có dữ liệu'}</span>
+              <span className="text-base font-bold text-slate-100 block">{movie.budget || (isEn ? 'N/A' : 'Chưa có dữ liệu')}</span>
             </div>
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
               <span className="text-xs font-semibold text-amber-400 flex items-center space-x-1">
-                <span>Doanh thu (Box Office)</span>
+                <span>{isEn ? 'Box Office Revenue' : 'Doanh thu phòng vé'}</span>
               </span>
-              <span className="text-base font-black text-amber-300 block">{movie.box_office || 'Chưa có dữ liệu'}</span>
+              <span className="text-base font-black text-amber-300 block">{movie.box_office || (isEn ? 'N/A' : 'Chưa có dữ liệu')}</span>
             </div>
           </div>
         </section>
@@ -289,9 +276,9 @@ export const MovieDetailPage: React.FC = () => {
 
       {/* ③ Nội dung chi tiết */}
       <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-3">
-        <h2 className="text-xl font-extrabold text-slate-100"> Nội dung phim</h2>
+        <h2 className="text-xl font-extrabold text-slate-100">{isEn ? ' Synopsis & Plot' : ' Nội dung phim'}</h2>
         <p className="text-sm text-slate-300 leading-relaxed font-normal">
-          {movie.overview_vi || movie.overview || 'Chưa có thông tin nội dung.'}
+          {movie.overview_vi || movie.overview || (isEn ? 'No plot overview available.' : 'Chưa có thông tin nội dung.')}
         </p>
       </section>
 
@@ -303,8 +290,8 @@ export const MovieDetailPage: React.FC = () => {
               <Play className="w-5 h-5 text-amber-400 fill-amber-400" />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-slate-100">Trailer / Video Giới Thiệu</h2>
-              <p className="text-xs text-slate-400">Xem trực tiếp trailer chính thức chất lượng cao</p>
+              <h2 className="text-xl font-extrabold text-slate-100">{isEn ? 'Official Trailer & Teasers' : 'Trailer / Video Giới Thiệu'}</h2>
+              <p className="text-xs text-slate-400">{isEn ? 'Watch official high-definition trailers directly' : 'Xem trực tiếp trailer chính thức chất lượng cao'}</p>
             </div>
           </div>
           <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-black">
@@ -322,7 +309,7 @@ export const MovieDetailPage: React.FC = () => {
       {/* ④ Diễn viên chính */}
       {movie.cast && movie.cast.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-xl font-extrabold text-slate-100"> Diễn viên tham gia</h2>
+          <h2 className="text-xl font-extrabold text-slate-100">{isEn ? ' Top Cast' : ' Diễn viên tham gia'}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
             {movie.cast.map((c) => (
               <div
@@ -346,24 +333,24 @@ export const MovieDetailPage: React.FC = () => {
         <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-4">
           <div className="flex items-center space-x-2">
             <Sliders className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-xl font-extrabold text-slate-100">Yếu tố Kỹ thuật &amp; Nghệ thuật Nổi bật</h2>
+            <h2 className="text-xl font-extrabold text-slate-100">{isEn ? 'Technical & Artistic Highlights' : 'Yếu tố Kỹ thuật & Nghệ thuật Nổi bật'}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {movie.technical_highlights.cinematography && (
               <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-                <span className="text-xs font-bold text-amber-400 block">📷 Quay phim (Cinematography)</span>
+                <span className="text-xs font-bold text-amber-400 block">{isEn ? '📷 Cinematography' : '📷 Quay phim (Cinematography)'}</span>
                 <p className="text-xs text-slate-300">{movie.technical_highlights.cinematography}</p>
               </div>
             )}
             {movie.technical_highlights.music && (
               <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-                <span className="text-xs font-bold text-cyan-400 block">🎵 Âm nhạc (Original Score)</span>
+                <span className="text-xs font-bold text-cyan-400 block">{isEn ? '🎵 Original Score' : '🎵 Âm nhạc (Original Score)'}</span>
                 <p className="text-xs text-slate-300">{movie.technical_highlights.music}</p>
               </div>
             )}
             {movie.technical_highlights.vfx && (
               <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-                <span className="text-xs font-bold text-purple-400 block">✨ Kỹ xảo (VFX / Special Effects)</span>
+                <span className="text-xs font-bold text-purple-400 block">{isEn ? '✨ VFX & Special Effects' : '✨ Kỹ xảo (VFX / Special Effects)'}</span>
                 <p className="text-xs text-slate-300">{movie.technical_highlights.vfx}</p>
               </div>
             )}
@@ -371,51 +358,11 @@ export const MovieDetailPage: React.FC = () => {
         </section>
       )}
 
-      {/* ⑥ Giải thưởng — always rendered container */}
-      <section className="glass-panel rounded-3xl p-6 sm:p-8 border border-yellow-500/20 space-y-4">
-        <div className="flex items-center space-x-3">
-          <Trophy className="w-5 h-5 text-yellow-400" />
-          <h2 className="text-xl font-extrabold text-slate-100">
-            {i18n.language?.startsWith('en') ? ' Awards & Recognition' : ' Giải thưởng đạt được'}
-          </h2>
-          <span className="text-xs px-2.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-300 border border-yellow-500/30 font-bold">
-            {sortedAwards.length > 0
-              ? (i18n.language?.startsWith('en') ? `${sortedAwards.length} awards` : `${sortedAwards.length} giải`)
-              : (i18n.language?.startsWith('en') ? '0 awards' : '0 giải')}
-          </span>
-        </div>
-
-        {sortedAwards.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {sortedAwards.map((awd, idx) => (
-              <div key={idx} className="relative p-3.5 pt-6 rounded-2xl bg-slate-900/80 border border-yellow-500/20 hover:border-yellow-400/40 transition flex items-start space-x-3">
-                {/* Year badge — top right */}
-                {awd.year && (
-                  <span className="absolute top-2 right-2.5 text-[10px] font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded-md">
-                    {awd.year}
-                  </span>
-                )}
-                <span className="text-lg flex-shrink-0"></span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-bold text-slate-100 line-clamp-2 leading-snug">{awd.name}</h4>
-                  <p className="text-[11px] text-amber-300 font-medium mt-0.5 line-clamp-1">{awd.category}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
-            <Award className="w-8 h-8 text-slate-500 mx-auto" />
-            <p className="text-sm font-bold text-slate-300">
-              {i18n.language?.startsWith('en') ? 'No awards information recorded' : 'Chưa có thông tin giải thưởng'}
-            </p>
-            <p className="text-xs text-slate-400">
-              {i18n.language?.startsWith('en')
-                ? 'This movie currently has no official major awards listed in the database.'
-                : 'Tác phẩm hiện chưa ghi nhận hoặc chưa đoạt giải thưởng chính thức nào.'}
-            </p>
-          </div>
-        )}
+      {/* ⑥ CineBot AI CTA Banner for Awards */}
+      <section className="glass-panel-glow rounded-3xl p-5 border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-slate-900/90 to-amber-950/40 text-center shadow-xl">
+        <p className="text-xs sm:text-sm font-extrabold text-amber-300 flex items-center justify-center space-x-2">
+          <span>{isEn ? 'Want to know more information? Use CineBot AI!' : 'Muốn tìm hiểu thêm về các giải thưởng? Hãy sử dụng CineBot AI!'}</span>
+        </p>
       </section>
 
       {/* Trailer Modal */}
@@ -455,8 +402,8 @@ export const MovieDetailPage: React.FC = () => {
                 <GitCompare className="w-5 h-5 text-cyan-400" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-100">So Sánh Phim Với {movie.title}</h3>
-                <p className="text-xs text-slate-400">Chọn bộ phim để đối sánh doanh thu, đánh giá IMDb và quy mô tác phẩm</p>
+                <h3 className="text-lg font-black text-slate-100">{isEn ? `Compare Movie With ${getMovieTitle(movie, i18n.language)}` : `So Sánh Phim Với ${getMovieTitle(movie, i18n.language)}`}</h3>
+                <p className="text-xs text-slate-400">{isEn ? 'Select a movie to compare box office, IMDb rating, and scale' : 'Chọn bộ phim để đối sánh doanh thu, đánh giá IMDb và quy mô tác phẩm'}</p>
               </div>
             </div>
 
@@ -466,12 +413,12 @@ export const MovieDetailPage: React.FC = () => {
                 type="text"
                 value={compareSearchQuery}
                 onChange={(e) => setCompareSearchQuery(e.target.value)}
-                placeholder="Nhập tên bộ phim bạn muốn so sánh..."
+                placeholder={isEn ? 'Type movie title to compare...' : 'Nhập tên bộ phim bạn muốn so sánh...'}
                 className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 focus:border-amber-400 rounded-lg text-xs text-slate-900 font-medium placeholder-slate-400 focus:outline-none"
               />
               <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
               {isSearching && (
-                <span className="absolute right-3.5 top-3 text-[10px] text-cyan-400 font-bold animate-pulse">Đang tìm...</span>
+                <span className="absolute right-3.5 top-3 text-[10px] text-cyan-400 font-bold animate-pulse">{isEn ? 'Searching...' : 'Đang tìm...'}</span>
               )}
             </div>
 
@@ -479,9 +426,9 @@ export const MovieDetailPage: React.FC = () => {
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
               {compareSearchQuery.trim() ? (
                 <div>
-                  <span className="text-[10px] font-bold text-cyan-400 block mb-2 uppercase tracking-wider">Kết quả tìm kiếm phim</span>
+                  <span className="text-[10px] font-bold text-cyan-400 block mb-2 uppercase tracking-wider">{isEn ? 'Movie Search Results' : 'Kết quả tìm kiếm phim'}</span>
                   {compareSearchResults.length === 0 ? (
-                    <p className="text-xs text-slate-400 py-4 text-center">Không tìm thấy phim phù hợp</p>
+                    <p className="text-xs text-slate-400 py-4 text-center">{isEn ? 'No matching movies found' : 'Không tìm thấy phim phù hợp'}</p>
                   ) : (
                     <div className="grid grid-cols-1 gap-2">
                       {compareSearchResults.map((m) => (
@@ -495,10 +442,10 @@ export const MovieDetailPage: React.FC = () => {
                         >
                           <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-10 h-14 rounded-xl object-cover flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-xs font-bold text-slate-100 truncate">{m.title}</h4>
+                            <h4 className="text-xs font-bold text-slate-100 truncate">{getMovieTitle(m, i18n.language)}</h4>
                             <p className="text-[10px] text-slate-400 mt-0.5">{m.release_date?.split('-')[0]} &bull; ⭐ IMDb {m.vote_average}</p>
                           </div>
-                          <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-[10px] font-bold rounded-xl border border-cyan-500/30">Chọn</span>
+                          <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-[10px] font-bold rounded-xl border border-cyan-500/30">{isEn ? 'Select' : 'Chọn'}</span>
                         </div>
                       ))}
                     </div>
@@ -506,7 +453,7 @@ export const MovieDetailPage: React.FC = () => {
                 </div>
               ) : (
                 <div>
-                  <span className="text-[10px] font-bold text-amber-400 block mb-2 uppercase tracking-wider">Phim nổi tiếng gợi ý</span>
+                  <span className="text-[10px] font-bold text-amber-400 block mb-2 uppercase tracking-wider">{isEn ? 'Popular Movie Suggestions' : 'Phim nổi tiếng gợi ý'}</span>
                   <div className="grid grid-cols-1 gap-2">
                     {popularMovies.slice(0, 6).map((m) => (
                       <div
@@ -519,10 +466,10 @@ export const MovieDetailPage: React.FC = () => {
                       >
                         <ImgWithFallback src={m.poster_path} type="poster" alt={m.title} className="w-10 h-14 rounded-xl object-cover flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-bold text-slate-100 truncate">{m.title}</h4>
+                          <h4 className="text-xs font-bold text-slate-100 truncate">{getMovieTitle(m, i18n.language)}</h4>
                           <p className="text-[10px] text-slate-400 mt-0.5">{m.release_date?.split('-')[0]} &bull; ⭐ IMDb {m.vote_average}</p>
                         </div>
-                        <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">So sánh</span>
+                        <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-bold rounded-xl border border-amber-500/30">{isEn ? 'Compare' : 'So sánh'}</span>
                       </div>
                     ))}
                   </div>

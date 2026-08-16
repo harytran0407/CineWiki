@@ -79,11 +79,13 @@ export const AIChatbot: React.FC = () => {
   };
 
   const [pageCtx, setPageCtx] = useState<{ type: 'movie' | 'actor'; id: string; name?: string } | null>(null);
+  const [contextDetails, setContextDetails] = useState<any>(null);
 
   useEffect(() => {
     const ctx = getContextFromUrl();
     if (!ctx) {
       setPageCtx(null);
+      setContextDetails(null);
       return;
     }
 
@@ -94,6 +96,13 @@ export const AIChatbot: React.FC = () => {
         .then((data) => {
           if (data.success && data.data?.title) {
             setPageCtx({ type: 'movie', id: ctx.id, name: data.data.title });
+            setContextDetails({
+              title: data.data.title,
+              overview: data.data.overview,
+              rating: data.data.vote_average,
+              releaseDate: data.data.release_date,
+              cast: data.data.cast?.slice(0, 5).map((c: any) => c.name).join(', ')
+            });
           } else {
             setPageCtx(ctx);
           }
@@ -105,6 +114,13 @@ export const AIChatbot: React.FC = () => {
         .then((data) => {
           if (data.success && data.data?.name) {
             setPageCtx({ type: 'actor', id: ctx.id, name: data.data.name });
+            setContextDetails({
+              name: data.data.name,
+              overview: data.data.biography,
+              rating: data.data.popularity,
+              releaseDate: data.data.birthday,
+              cast: data.data.landmark_works?.join(', ')
+            });
           } else {
             setPageCtx(ctx);
           }
@@ -212,11 +228,10 @@ export const AIChatbot: React.FC = () => {
         content: m.text
       }));
 
-      // Inject movie or actor context prefix
       const contextPrefix = pageCtx?.name
         ? pageCtx.type === 'movie'
-          ? `[Người dùng đang xem trang phim "${pageCtx.name}" trên CineWiki] `
-          : `[Người dùng đang xem trang diễn viên "${pageCtx.name}" trên CineWiki] `
+          ? `[Khán giả đang xem phim "${pageCtx.name}"] `
+          : `[Khán giả đang xem diễn viên "${pageCtx.name}"] `
         : '';
 
       const res = await fetch('/api/ai/chat', {
@@ -224,13 +239,18 @@ export const AIChatbot: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: contextPrefix + textToSend,
-          history: historyPayload
+          history: historyPayload,
+          contextData: contextDetails
         })
       });
 
       const data = await res.json();
-      const aiReply = data.success && data.reply ? data.reply : 'CineBot AI: Rất tiếc tôi đang bảo trì kết nối, bạn thử lại sau ít phút nhé!';
-      const followUpQuestions: string[] = data.success && data.followUpQuestions ? data.followUpQuestions : [
+      if (!data.success) {
+        throw new Error(data.message || 'Hệ thống AI hiện đang gặp sự cố. Vui lòng kiểm tra cấu hình API key.');
+      }
+
+      const aiReply = data.reply;
+      const followUpQuestions: string[] = data.followUpQuestions || [
         'Gợi ý thêm tác phẩm điện ảnh xuất sắc?',
         'Chi tiết về các giải thưởng lớn?',
         'Thông tin về dàn diễn viên chính?'
@@ -252,11 +272,11 @@ export const AIChatbot: React.FC = () => {
         {
           id: `err-${Date.now()}`,
           sender: 'ai',
-          text: 'CineBot AI: Đã xảy ra sự cố kết nối. Vui lòng kiểm tra lại mạng!',
+          text: `⚠️ **Lỗi AI**: ${(err as Error).message}`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           followUpQuestions: [
-            'Gợi ý phim Oscar hay nhất',
-            'Top 5 phim của Christopher Nolan'
+            'Thử lại với câu hỏi khác',
+            'Gợi ý phim Oscar hay nhất'
           ]
         }
       ]);
@@ -296,7 +316,7 @@ export const AIChatbot: React.FC = () => {
               <div>
                 <h3 className="text-sm font-black text-slate-100 flex items-center space-x-1.5">
                   <span>CineBot AI</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-400/10 text-amber-300 font-bold border border-amber-400/30">Gemini Lite</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-400/10 text-amber-300 font-bold border border-amber-400/30">Gemini 3.6 Flash</span>
                 </h3>
 
               </div>
